@@ -1,0 +1,19 @@
+{
+  "uuid": "f205e9af-4124-4829-a5bb-53cc3f8b0362",
+  "shortName": "roundwatch",
+  "longName": "roundwatch",
+  "companyName": "Joshua Tacoma",
+  "versionLabel": "1.0",
+  "sdkVersion": "3",
+  "targetPlatforms": ["aplite", "basalt", "chalk"],
+  "enableMultiJS": true,
+  "watchapp": {
+    "watchface": true
+  },
+  "appKeys": {
+    "dummy": 0
+  },
+  "resources": {
+    "media": []
+  }
+}
