@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 #include <pebble.h>
+#include "./analog_layer.h"
 
 static Window *s_main_window;
+static JTT_AnalogLayer *s_analog_layer;
 static TextLayer *s_time_layer;
 
 static void update_time() {
@@ -29,6 +31,7 @@ static void update_time() {
             tick_time);
 
     text_layer_set_text(s_time_layer, s_buffer);
+    jtt_analog_layer_set_time(s_analog_layer, temp);
 }
 
 static void tick_handler(
@@ -41,9 +44,13 @@ static void main_window_load(Window *window) {
     Layer *window_layer = window_get_root_layer(window);
     GRect bounds = layer_get_bounds(window_layer);
 
+    s_analog_layer = jtt_analog_layer_create(bounds);
+    layer_add_child(
+            window_layer,
+            jtt_analog_layer_get_layer(s_analog_layer));
+
     s_time_layer = text_layer_create(
             GRect(0, PBL_IF_ROUND_ELSE(58, 52), bounds.size.w, 50));
-
     text_layer_set_background_color(
             s_time_layer,
             GColorClear);
@@ -56,11 +63,11 @@ static void main_window_load(Window *window) {
     text_layer_set_text_color(
             s_time_layer,
             GColorBlack);
-
     layer_add_child(window_layer, text_layer_get_layer(s_time_layer));
 }
 
 static void main_window_unload(Window *window) {
+    jtt_analog_layer_destroy(s_analog_layer);
     text_layer_destroy(s_time_layer);
 }
 
