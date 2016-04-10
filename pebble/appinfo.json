@@ -15,8 +15,6 @@
     "sdkVersion": "3",
     "shortName": "Blue Sky",
     "targetPlatforms": [
-        "aplite",
-        "basalt",
         "chalk"
     ],
     "uuid": "f205e9af-4124-4829-a5bb-53cc3f8b0362",
