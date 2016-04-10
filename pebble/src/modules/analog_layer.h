@@ -13,8 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef BSKY_ANALOG_LAYER_H
-#define BSKY_ANALOG_LAYER_H
+#pragma once
 
 // A Blue Sky analog layer.
 typedef struct BSKY_AnalogLayer BSKY_AnalogLayer;
@@ -32,5 +31,3 @@ Layer * bsky_analog_layer_get_layer(BSKY_AnalogLayer * analog_layer);
 void bsky_analog_layer_set_time(
         BSKY_AnalogLayer * analog_layer,
         time_t time);
-
-#endif

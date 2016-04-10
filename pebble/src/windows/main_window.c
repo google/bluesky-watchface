@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 #include <pebble.h>
-#include "./analog_layer.h"
+
+#include "modules/analog_layer.h"
 
 static Window *s_main_window;
 
@@ -119,31 +120,28 @@ static void main_window_load(Window *window) {
 
 static void main_window_unload(Window *window) {
     text_layer_destroy(s_date_layer);
+    s_date_layer = NULL;
     text_layer_destroy(s_time_layer);
+    s_time_layer = NULL;
     bsky_analog_layer_destroy(s_analog_layer);
+    s_analog_layer = NULL;
+    window_destroy(s_main_window);
+    s_main_window = NULL;
 }
 
-static void init() {
-    s_main_window = window_create();
+void main_window_push() {
+    if (!s_main_window) {
+        s_main_window = window_create();
 
-    window_set_window_handlers(s_main_window, (WindowHandlers) {
-        .load = main_window_load,
-        .unload = main_window_unload,
-    });
+        window_set_window_handlers(s_main_window, (WindowHandlers) {
+            .load = main_window_load,
+            .unload = main_window_unload,
+        });
+
+        tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
+    }
 
     window_stack_push(s_main_window, true);
 
-    tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
-
     update_time();
-}
-
-static void deinit() {
-    window_destroy(s_main_window);
-}
-
-int main(void) {
-    init();
-    app_event_loop();
-    deinit();
 }

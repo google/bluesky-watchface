@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 #include <pebble.h>
-#include "./analog_layer.h"
+#include "analog_layer.h"
 
 /* Cycles:
  *  Regular numeric cycles:
