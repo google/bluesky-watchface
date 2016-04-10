@@ -19,19 +19,28 @@
 static Window *s_main_window;
 static JTT_AnalogLayer *s_analog_layer;
 static TextLayer *s_time_layer;
+static TextLayer *s_date_layer;
 
 static void update_time() {
-    time_t temp = time(NULL);
-    struct tm *tick_time = localtime(&temp);
+    const time_t now = time(NULL);
 
-    static char s_buffer[8];
-    strftime(s_buffer,
-            sizeof(s_buffer),
+    jtt_analog_layer_set_time(s_analog_layer, now);
+
+    const struct tm *local_now = localtime(&now);
+
+    static char s_time_buffer[8];
+    strftime(s_time_buffer,
+            sizeof(s_time_buffer),
             clock_is_24h_style() ? "%H:%M" : "%I:%M",
-            tick_time);
+            local_now);
+    text_layer_set_text(s_time_layer, s_time_buffer);
 
-    text_layer_set_text(s_time_layer, s_buffer);
-    jtt_analog_layer_set_time(s_analog_layer, temp);
+    static char s_date_buffer[20]; // 10 should suffice, but..
+    strftime(s_date_buffer,
+            sizeof(s_date_buffer),
+            "%a %m-%d",
+            local_now);
+    text_layer_set_text(s_date_layer, s_date_buffer);
 }
 
 static void tick_handler(
@@ -50,13 +59,13 @@ static void main_window_load(Window *window) {
             jtt_analog_layer_get_layer(s_analog_layer));
 
     s_time_layer = text_layer_create(
-            GRect(0, PBL_IF_ROUND_ELSE(58, 52), bounds.size.w, 50));
+            GRect(0, 52, bounds.size.w, 40));
     text_layer_set_background_color(
             s_time_layer,
             GColorClear);
     text_layer_set_font(
             s_time_layer,
-            fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD));
+            fonts_get_system_font(FONT_KEY_BITHAM_34_MEDIUM_NUMBERS));
     text_layer_set_text_alignment(
             s_time_layer,
             GTextAlignmentCenter);
@@ -64,11 +73,27 @@ static void main_window_load(Window *window) {
             s_time_layer,
             GColorBlack);
     layer_add_child(window_layer, text_layer_get_layer(s_time_layer));
+
+    s_date_layer = text_layer_create(GRect(0, 92, bounds.size.w, 26));
+    text_layer_set_background_color(
+            s_date_layer,
+            GColorClear);
+    text_layer_set_font(
+            s_date_layer,
+            fonts_get_system_font(FONT_KEY_ROBOTO_CONDENSED_21));
+    text_layer_set_text_alignment(
+            s_date_layer,
+            GTextAlignmentCenter);
+    text_layer_set_text_color(
+            s_date_layer,
+            GColorBlack);
+    layer_add_child(window_layer, text_layer_get_layer(s_date_layer));
 }
 
 static void main_window_unload(Window *window) {
-    jtt_analog_layer_destroy(s_analog_layer);
+    text_layer_destroy(s_date_layer);
     text_layer_destroy(s_time_layer);
+    jtt_analog_layer_destroy(s_analog_layer);
 }
 
 static void init() {
