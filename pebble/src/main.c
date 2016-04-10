@@ -18,13 +18,16 @@
 #include "windows/main_window.h"
 
 static void init() {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "init()");
     main_window_push();
 }
 
 static void deinit() {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "deinit()");
 }
 
 int main(void) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "main()");
     init();
     app_event_loop();
     deinit();

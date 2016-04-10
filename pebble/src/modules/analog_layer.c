@@ -61,6 +61,11 @@ static GRect bsky_rect_trim (const GRect rect, const int8_t trim) {
 }
 
 static void bsky_analog_layer_update (Layer *layer, GContext *ctx) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG,
+            "bsky_analog_layer_update(%p, %p)",
+            layer,
+            ctx);
+
     const GColor color_sun_fill = GColorYellow;
     const GColor color_sun_stroke = GColorDarkCandyAppleRed;
     const GColor color_sky_fill [] = {
@@ -149,6 +154,7 @@ struct BSKY_AnalogLayer {
 };
 
 BSKY_AnalogLayer * bsky_analog_layer_create(GRect frame) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_analog_layer_create(...)");
     BSKY_AnalogLayer *analog_layer = malloc(sizeof(*analog_layer));
     if (analog_layer) {
         analog_layer->layer = layer_create_with_data(
@@ -168,6 +174,9 @@ BSKY_AnalogLayer * bsky_analog_layer_create(GRect frame) {
 }
 
 void bsky_analog_layer_destroy(BSKY_AnalogLayer *analog_layer) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG,
+            "bsky_analog_layer_destroy(%p)",
+            analog_layer);
     layer_destroy(analog_layer->layer);
     analog_layer->layer = NULL;
     analog_layer->data = NULL;
@@ -175,12 +184,18 @@ void bsky_analog_layer_destroy(BSKY_AnalogLayer *analog_layer) {
 }
 
 Layer * bsky_analog_layer_get_layer(BSKY_AnalogLayer *analog_layer) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG,
+            "bsky_analog_layer_get_layer(%p)",
+            analog_layer);
     return analog_layer->layer;
 }
 
 void bsky_analog_layer_set_time(
         BSKY_AnalogLayer *analog_layer,
         time_t time) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG,
+            "bsky_analog_layer_set_time(%p, ...)",
+            analog_layer);
     analog_layer->data->unix_time = time;
     struct tm * wall_time = localtime(&time);
     analog_layer->data->wall_time = *wall_time;
