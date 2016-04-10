@@ -63,7 +63,7 @@ static GRect jtt_rect_trim (const GRect rect, const int8_t trim) {
 
 static void jtt_analog_layer_update (Layer *layer, GContext *ctx) {
     const GColor color_sun_fill = GColorYellow;
-    const GColor color_sun_stroke = GColorOrange;
+    const GColor color_sun_stroke = GColorDarkCandyAppleRed;
     const GColor color_sky_fill [] = {
         //GColorPictonBlue,
         //GColorVividCerulean,
@@ -122,21 +122,12 @@ static void jtt_analog_layer_update (Layer *layer, GContext *ctx) {
     const int32_t sun_angle = midnight_angle
         + TRIG_MAX_ANGLE * data->wall_time.tm_hour / 24
         + TRIG_MAX_ANGLE * data->wall_time.tm_min / (24 * 60);
-    const int32_t sun_diameter = sky_thickness*2/3;
-    const GRect sun_orbit = jtt_rect_trim(sky_bounds, sun_diameter/2);
+    const int32_t sun_diameter = sky_thickness*3/4;
+    const GRect sun_orbit = jtt_rect_trim(sky_bounds, sky_thickness/2);
     const GPoint sun_center = gpoint_from_polar(
             sun_orbit,
             GOvalScaleModeFitCircle,
             sun_angle);
-    graphics_context_set_stroke_color(ctx, color_sun_stroke);
-    graphics_context_set_stroke_width(ctx, 2);
-    graphics_draw_line(
-            ctx,
-            sun_center,
-            gpoint_from_polar(
-                sky_inset,
-                GOvalScaleModeFitCircle,
-                sun_angle));
     graphics_context_set_fill_color(ctx, color_sun_fill);
     graphics_fill_circle(ctx, sun_center, sun_diameter/2);
     graphics_context_set_stroke_color(ctx, color_sun_stroke);
