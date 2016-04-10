@@ -13,19 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef JTT_ANALOG_LAYER_H
-#define JTT_ANALOG_LAYER_H
+#ifndef BSKY_ANALOG_LAYER_H
+#define BSKY_ANALOG_LAYER_H
 
-typedef struct JTT_AnalogLayer JTT_AnalogLayer;
+typedef struct BSKY_AnalogLayer BSKY_AnalogLayer;
 
-JTT_AnalogLayer * jtt_analog_layer_create(GRect frame);
+BSKY_AnalogLayer * bsky_analog_layer_create(GRect frame);
 
-void jtt_analog_layer_destroy(JTT_AnalogLayer * analog_layer);
+void bsky_analog_layer_destroy(BSKY_AnalogLayer * analog_layer);
 
-Layer * jtt_analog_layer_get_layer(JTT_AnalogLayer * analog_layer);
+Layer * bsky_analog_layer_get_layer(BSKY_AnalogLayer * analog_layer);
 
-void jtt_analog_layer_set_time(
-        JTT_AnalogLayer * analog_layer,
+void bsky_analog_layer_set_time(
+        BSKY_AnalogLayer * analog_layer,
         time_t time);
 
 #endif

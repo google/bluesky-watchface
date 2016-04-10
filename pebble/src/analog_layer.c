@@ -45,9 +45,9 @@ struct ConcentricRing {
 typedef struct {
     time_t unix_time;
     struct tm wall_time;
-} JTT_AnalogData;
+} BSKY_AnalogData;
 
-static GRect jtt_rect_trim (const GRect rect, const int8_t trim) {
+static GRect bsky_rect_trim (const GRect rect, const int8_t trim) {
     const GRect result = {
         .origin = {
             .x = rect.origin.x + trim,
@@ -61,7 +61,7 @@ static GRect jtt_rect_trim (const GRect rect, const int8_t trim) {
     return result;
 }
 
-static void jtt_analog_layer_update (Layer *layer, GContext *ctx) {
+static void bsky_analog_layer_update (Layer *layer, GContext *ctx) {
     const GColor color_sun_fill = GColorYellow;
     const GColor color_sun_stroke = GColorDarkCandyAppleRed;
     const GColor color_sky_fill [] = {
@@ -75,7 +75,7 @@ static void jtt_analog_layer_update (Layer *layer, GContext *ctx) {
         sizeof(color_sky_fill) / sizeof(color_sky_fill[0]);
     const GColor color_sky_stroke = GColorBlueMoon;
 
-    const JTT_AnalogData * const data = layer_get_data(layer);
+    const BSKY_AnalogData * const data = layer_get_data(layer);
     const GRect bounds = layer_get_bounds(layer);
 
     graphics_context_set_fill_color(ctx, GColorClear);
@@ -92,7 +92,7 @@ static void jtt_analog_layer_update (Layer *layer, GContext *ctx) {
         graphics_context_set_fill_color(ctx, color_sky_fill[sky_fill]);
         graphics_fill_radial(
                 ctx,
-                jtt_rect_trim(
+                bsky_rect_trim(
                     sky_bounds,
                     sky_thickness * sky_fill / color_sky_fill_len),
                 GOvalScaleModeFitCircle,
@@ -101,7 +101,7 @@ static void jtt_analog_layer_update (Layer *layer, GContext *ctx) {
                 TRIG_MAX_ANGLE);
     }
     const int32_t midnight_angle = TRIG_MAX_ANGLE / 2;
-    const GRect sky_inset = jtt_rect_trim(sky_bounds, sky_thickness);
+    const GRect sky_inset = bsky_rect_trim(sky_bounds, sky_thickness);
     graphics_context_set_stroke_color(ctx, color_sky_stroke);
     graphics_context_set_antialiased(ctx, true);
     for (int32_t hour = 0; hour < 24; ++hour) {
@@ -123,7 +123,7 @@ static void jtt_analog_layer_update (Layer *layer, GContext *ctx) {
         + TRIG_MAX_ANGLE * data->wall_time.tm_hour / 24
         + TRIG_MAX_ANGLE * data->wall_time.tm_min / (24 * 60);
     const int32_t sun_diameter = sky_thickness*3/4;
-    const GRect sun_orbit = jtt_rect_trim(sky_bounds, sky_thickness/2);
+    const GRect sun_orbit = bsky_rect_trim(sky_bounds, sky_thickness/2);
     const GPoint sun_center = gpoint_from_polar(
             sun_orbit,
             GOvalScaleModeFitCircle,
@@ -135,17 +135,17 @@ static void jtt_analog_layer_update (Layer *layer, GContext *ctx) {
     graphics_draw_circle(ctx, sun_center, sun_diameter/2);
 }
 
-struct JTT_AnalogLayer {
+struct BSKY_AnalogLayer {
     Layer *layer;
-    JTT_AnalogData *data;
+    BSKY_AnalogData *data;
 };
 
-JTT_AnalogLayer * jtt_analog_layer_create(GRect frame) {
-    JTT_AnalogLayer *analog_layer = malloc(sizeof(*analog_layer));
+BSKY_AnalogLayer * bsky_analog_layer_create(GRect frame) {
+    BSKY_AnalogLayer *analog_layer = malloc(sizeof(*analog_layer));
     if (analog_layer) {
         analog_layer->layer = layer_create_with_data(
                 frame,
-                sizeof(JTT_AnalogData));
+                sizeof(BSKY_AnalogData));
         if (!analog_layer->layer) {
             free(analog_layer);
             analog_layer = NULL;
@@ -153,23 +153,23 @@ JTT_AnalogLayer * jtt_analog_layer_create(GRect frame) {
             analog_layer->data = layer_get_data(analog_layer->layer);
             layer_set_update_proc(
                     analog_layer->layer,
-                    jtt_analog_layer_update);
+                    bsky_analog_layer_update);
         }
     }
     return analog_layer;
 }
 
-void jtt_analog_layer_destroy(JTT_AnalogLayer *analog_layer) {
+void bsky_analog_layer_destroy(BSKY_AnalogLayer *analog_layer) {
     layer_destroy(analog_layer->layer);
     free(analog_layer);
 }
 
-Layer * jtt_analog_layer_get_layer(JTT_AnalogLayer *analog_layer) {
+Layer * bsky_analog_layer_get_layer(BSKY_AnalogLayer *analog_layer) {
     return analog_layer->layer;
 }
 
-void jtt_analog_layer_set_time(
-        JTT_AnalogLayer *analog_layer,
+void bsky_analog_layer_set_time(
+        BSKY_AnalogLayer *analog_layer,
         time_t time) {
     analog_layer->data->unix_time = time;
     struct tm * wall_time = localtime(&time);

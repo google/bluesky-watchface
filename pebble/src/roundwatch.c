@@ -17,14 +17,14 @@
 #include "./analog_layer.h"
 
 static Window *s_main_window;
-static JTT_AnalogLayer *s_analog_layer;
+static BSKY_AnalogLayer *s_analog_layer;
 static TextLayer *s_time_layer;
 static TextLayer *s_date_layer;
 
 static void update_time() {
     const time_t now = time(NULL);
 
-    jtt_analog_layer_set_time(s_analog_layer, now);
+    bsky_analog_layer_set_time(s_analog_layer, now);
 
     const struct tm *local_now = localtime(&now);
 
@@ -53,10 +53,10 @@ static void main_window_load(Window *window) {
     Layer *window_layer = window_get_root_layer(window);
     GRect bounds = layer_get_bounds(window_layer);
 
-    s_analog_layer = jtt_analog_layer_create(bounds);
+    s_analog_layer = bsky_analog_layer_create(bounds);
     layer_add_child(
             window_layer,
-            jtt_analog_layer_get_layer(s_analog_layer));
+            bsky_analog_layer_get_layer(s_analog_layer));
 
     s_time_layer = text_layer_create(
             GRect(0, 52, bounds.size.w, 40));
@@ -93,7 +93,7 @@ static void main_window_load(Window *window) {
 static void main_window_unload(Window *window) {
     text_layer_destroy(s_date_layer);
     text_layer_destroy(s_time_layer);
-    jtt_analog_layer_destroy(s_analog_layer);
+    bsky_analog_layer_destroy(s_analog_layer);
 }
 
 static void init() {
