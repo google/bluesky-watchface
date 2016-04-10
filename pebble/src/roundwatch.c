@@ -17,36 +17,59 @@
 #include "./analog_layer.h"
 
 static Window *s_main_window;
+
+// Layers are ordered here as they are in the window's stack.
+// Operations over layers are always in the same order except while
+// unloading the main window, when the order is reversed.
 static BSKY_AnalogLayer *s_analog_layer;
 static TextLayer *s_time_layer;
 static TextLayer *s_date_layer;
 
+static void sprint_error(char * buffer, size_t n) {
+    static const char generic_error[] = "!ERROR";
+    memset(buffer, 0, n);
+    for (size_t i=0; i<n-1; ++i) {
+        buffer[i] = generic_error[i];
+    }
+}
+
 static void update_time() {
     const time_t now = time(NULL);
+    const struct tm *local_now = localtime(&now);
 
     bsky_analog_layer_set_time(s_analog_layer, now);
 
-    const struct tm *local_now = localtime(&now);
-
-    static char s_time_buffer[8];
-    strftime(s_time_buffer,
-            sizeof(s_time_buffer),
-            clock_is_24h_style() ? "%H:%M" : "%I:%M",
-            local_now);
+    // 6 characaters is enough in my locale, but 7 are necessary to hold
+    // the generic_error message that will be displayed in case the
+    // buffer isn't large enough after all.
+    static char s_time_buffer[7];
+    if (0 == strftime(s_time_buffer,
+                sizeof(s_time_buffer),
+                clock_is_24h_style() ? "%H:%M" : "%I:%M",
+                local_now)) {
+        sprint_error(s_time_buffer, sizeof(s_time_buffer));
+    }
     text_layer_set_text(s_time_layer, s_time_buffer);
 
-    static char s_date_buffer[20]; // 10 should suffice, but..
-    strftime(s_date_buffer,
-            sizeof(s_date_buffer),
-            "%a %m-%d",
-            local_now);
+    static char s_date_buffer[10];
+    if (0 == strftime(s_date_buffer,
+                sizeof(s_date_buffer),
+                "%a %m-%d",
+                local_now)) {
+        sprint_error(s_date_buffer, sizeof(s_date_buffer));
+    }
     text_layer_set_text(s_date_layer, s_date_buffer);
 }
 
 static void tick_handler(
         struct tm *tick_time,
         TimeUnits units_changed) {
-    update_time(); // TODO: find out whether to forward tick_time here
+    // Here we could forward tick_time to avoid having to recompute the
+    // local time in update_time, but we may very well want to call
+    // update_time in other contexts where we don't have an appropriate
+    // value to pass in.  Therefore, update_time will ultimately have to
+    // be reponsible for computing the local time anyway.
+    update_time();
 }
 
 static void main_window_load(Window *window) {
@@ -57,6 +80,10 @@ static void main_window_load(Window *window) {
     layer_add_child(
             window_layer,
             bsky_analog_layer_get_layer(s_analog_layer));
+
+    // TODO: I'm not sure what I'm doing with fonts here.  How should a
+    // font be selected?  How should the layers be positioned and sized?
+    // At this point it's all just guess work and "good enough" results.
 
     s_time_layer = text_layer_create(
             GRect(0, 52, bounds.size.w, 40));

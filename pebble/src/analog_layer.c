@@ -16,11 +16,6 @@
 #include <pebble.h>
 #include "./analog_layer.h"
 
-struct ConcentricRing {
-    int32_t duration; // seconds
-    GColor8 color;
-};
-
 /* Cycles:
  *  Regular numeric cycles:
  *   Minute of 60 seconds
@@ -32,21 +27,25 @@ struct ConcentricRing {
  *   Moon phase cycle of about 29.53 days
  *   Solar year of about 365.25 days
  *  Irregular but well-defined cycles:
- *   Gregorian Month
- *   Gregorian Year
+ *   Gregorian Month of 28, 29, 30, or 31 days
+ *   Gregorian Year of 365 or 366 days
  */
 
-#define DURATION_SECOND (1)
-#define DURATION_MINUTE (60*DURATION_SECOND)
-#define DURATION_HOUR   (60*DURATION_MINUTE)
-#define DURATION_DAY    (24*DURATION_HOUR)
-#define DURATION_LUNE   (2551392*DURATION_SECOND)
-
+/// Custom state per analog layer.
 typedef struct {
+
+    // The "absolute" moment to be displayed.
     time_t unix_time;
+
+    // The timezone-local moment to be displayed.
     struct tm wall_time;
+
+    // How thick the band of blue sky should be.
+    int16_t sky_thickness;
+
 } BSKY_AnalogData;
 
+/// Make a smaller rect by trimming the edges of a larger one.
 static GRect bsky_rect_trim (const GRect rect, const int8_t trim) {
     const GRect result = {
         .origin = {
@@ -65,8 +64,6 @@ static void bsky_analog_layer_update (Layer *layer, GContext *ctx) {
     const GColor color_sun_fill = GColorYellow;
     const GColor color_sun_stroke = GColorDarkCandyAppleRed;
     const GColor color_sky_fill [] = {
-        //GColorPictonBlue,
-        //GColorVividCerulean,
         GColorCyan,
         GColorElectricBlue,
         GColorCeleste,
@@ -83,6 +80,8 @@ static void bsky_analog_layer_update (Layer *layer, GContext *ctx) {
 
     // TODO: find value of inset_thickness based on available size, or
     //       set through public API of this module.
+
+    // Update the Blue Sky
     const GRect sky_bounds = bounds;
     const int16_t sky_thickness =
         (sky_bounds.size.w > sky_bounds.size.h)
@@ -100,6 +99,8 @@ static void bsky_analog_layer_update (Layer *layer, GContext *ctx) {
                 0,
                 TRIG_MAX_ANGLE);
     }
+
+    // Update the 24 hour markers
     const int32_t midnight_angle = TRIG_MAX_ANGLE / 2;
     const GRect sky_inset = bsky_rect_trim(sky_bounds, sky_thickness);
     graphics_context_set_stroke_color(ctx, color_sky_stroke);
@@ -119,6 +120,8 @@ static void bsky_analog_layer_update (Layer *layer, GContext *ctx) {
         graphics_context_set_stroke_width(ctx, hour % 3 ? 1 : 3);
         graphics_draw_line(ctx, p0, p1);
     }
+
+    // Update the Sun
     const int32_t sun_angle = midnight_angle
         + TRIG_MAX_ANGLE * data->wall_time.tm_hour / 24
         + TRIG_MAX_ANGLE * data->wall_time.tm_min / (24 * 60);
@@ -136,7 +139,12 @@ static void bsky_analog_layer_update (Layer *layer, GContext *ctx) {
 }
 
 struct BSKY_AnalogLayer {
+
+    // The real Pebble layer, of course.
     Layer *layer;
+
+    // A conveniently typed pointer to custom state data, stored in the
+    // layer itself.
     BSKY_AnalogData *data;
 };
 
@@ -161,6 +169,8 @@ BSKY_AnalogLayer * bsky_analog_layer_create(GRect frame) {
 
 void bsky_analog_layer_destroy(BSKY_AnalogLayer *analog_layer) {
     layer_destroy(analog_layer->layer);
+    analog_layer->layer = NULL;
+    analog_layer->data = NULL;
     free(analog_layer);
 }
 
