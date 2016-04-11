@@ -15,14 +15,14 @@
  */
 #include <pebble.h>
 
-#include "modules/analog_layer.h"
+#include "modules/sky_layer.h"
 
 static Window *s_main_window;
 
 // Layers are ordered here as they are in the window's stack.
 // Operations over layers are always in the same order except while
 // unloading the main window, when the order is reversed.
-static BSKY_AnalogLayer *s_analog_layer;
+static BSKY_SkyLayer *s_sky_layer;
 static TextLayer *s_time_layer;
 static TextLayer *s_date_layer;
 
@@ -38,7 +38,7 @@ static void update_time() {
     const time_t now = time(NULL);
     const struct tm *local_now = localtime(&now);
 
-    bsky_analog_layer_set_time(s_analog_layer, now);
+    bsky_sky_layer_set_time(s_sky_layer, now);
 
     // 6 characaters is enough in my locale, but 7 are necessary to hold
     // the generic_error message that will be displayed in case the
@@ -77,10 +77,10 @@ static void main_window_load(Window *window) {
     Layer *window_layer = window_get_root_layer(window);
     GRect bounds = layer_get_bounds(window_layer);
 
-    s_analog_layer = bsky_analog_layer_create(bounds);
+    s_sky_layer = bsky_sky_layer_create(bounds);
     layer_add_child(
             window_layer,
-            bsky_analog_layer_get_layer(s_analog_layer));
+            bsky_sky_layer_get_layer(s_sky_layer));
 
     // TODO: I'm not sure what I'm doing with fonts here.  How should a
     // font be selected?  How should the layers be positioned and sized?
@@ -123,8 +123,8 @@ static void main_window_unload(Window *window) {
     s_date_layer = NULL;
     text_layer_destroy(s_time_layer);
     s_time_layer = NULL;
-    bsky_analog_layer_destroy(s_analog_layer);
-    s_analog_layer = NULL;
+    bsky_sky_layer_destroy(s_sky_layer);
+    s_sky_layer = NULL;
     window_destroy(s_main_window);
     s_main_window = NULL;
 }

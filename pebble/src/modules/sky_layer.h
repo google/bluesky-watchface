@@ -15,19 +15,19 @@
  */
 #pragma once
 
-// A Blue Sky analog layer.
-typedef struct BSKY_AnalogLayer BSKY_AnalogLayer;
+// A Blue Sky sky layer.
+typedef struct BSKY_SkyLayer BSKY_SkyLayer;
 
-// Create and return a new Blue Sky analog layer, or NULL.
-BSKY_AnalogLayer * bsky_analog_layer_create(GRect frame);
+// Create and return a new Blue Sky sky layer, or NULL.
+BSKY_SkyLayer * bsky_sky_layer_create(GRect frame);
 
-// Deallocate a non-NULL Blue Sky analog layer.
-void bsky_analog_layer_destroy(BSKY_AnalogLayer * analog_layer);
+// Deallocate a non-NULL Blue Sky sky layer.
+void bsky_sky_layer_destroy(BSKY_SkyLayer * sky_layer);
 
 // Get the managed Pebble layer.
-Layer * bsky_analog_layer_get_layer(BSKY_AnalogLayer * analog_layer);
+Layer * bsky_sky_layer_get_layer(BSKY_SkyLayer * sky_layer);
 
 // Set the moment in time that will be displayed.
-void bsky_analog_layer_set_time(
-        BSKY_AnalogLayer * analog_layer,
+void bsky_sky_layer_set_time(
+        BSKY_SkyLayer * sky_layer,
         time_t time);

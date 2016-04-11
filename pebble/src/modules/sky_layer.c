@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 #include <pebble.h>
-#include "analog_layer.h"
+#include "sky_layer.h"
 
 /* Cycles:
  *  Regular numeric cycles:
@@ -31,7 +31,7 @@
  *   Gregorian Year of 365 or 366 days
  */
 
-/// Custom state per analog layer.
+/// Custom state per sky layer.
 typedef struct {
 
     // The "absolute" moment to be displayed.
@@ -43,7 +43,7 @@ typedef struct {
     // How thick the band of blue sky should be.
     int16_t sky_thickness;
 
-} BSKY_AnalogData;
+} BSKY_SkyData;
 
 /// Make a smaller rect by trimming the edges of a larger one.
 static GRect bsky_rect_trim (const GRect rect, const int8_t trim) {
@@ -60,9 +60,9 @@ static GRect bsky_rect_trim (const GRect rect, const int8_t trim) {
     return result;
 }
 
-static void bsky_analog_layer_update (Layer *layer, GContext *ctx) {
+static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
     APP_LOG(APP_LOG_LEVEL_DEBUG,
-            "bsky_analog_layer_update(%p, %p)",
+            "bsky_sky_layer_update(%p, %p)",
             layer,
             ctx);
 
@@ -77,7 +77,7 @@ static void bsky_analog_layer_update (Layer *layer, GContext *ctx) {
         sizeof(color_sky_fill) / sizeof(color_sky_fill[0]);
     const GColor color_sky_stroke = GColorBlueMoon;
 
-    const BSKY_AnalogData * const data = layer_get_data(layer);
+    const BSKY_SkyData * const data = layer_get_data(layer);
     const GRect bounds = layer_get_bounds(layer);
 
     graphics_context_set_fill_color(ctx, GColorClear);
@@ -143,61 +143,61 @@ static void bsky_analog_layer_update (Layer *layer, GContext *ctx) {
     graphics_draw_circle(ctx, sun_center, sun_diameter/2);
 }
 
-struct BSKY_AnalogLayer {
+struct BSKY_SkyLayer {
 
     // The real Pebble layer, of course.
     Layer *layer;
 
     // A conveniently typed pointer to custom state data, stored in the
     // layer itself.
-    BSKY_AnalogData *data;
+    BSKY_SkyData *data;
 };
 
-BSKY_AnalogLayer * bsky_analog_layer_create(GRect frame) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_analog_layer_create(...)");
-    BSKY_AnalogLayer *analog_layer = malloc(sizeof(*analog_layer));
-    if (analog_layer) {
-        analog_layer->layer = layer_create_with_data(
+BSKY_SkyLayer * bsky_sky_layer_create(GRect frame) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_sky_layer_create(...)");
+    BSKY_SkyLayer *sky_layer = malloc(sizeof(*sky_layer));
+    if (sky_layer) {
+        sky_layer->layer = layer_create_with_data(
                 frame,
-                sizeof(BSKY_AnalogData));
-        if (!analog_layer->layer) {
-            free(analog_layer);
-            analog_layer = NULL;
+                sizeof(BSKY_SkyData));
+        if (!sky_layer->layer) {
+            free(sky_layer);
+            sky_layer = NULL;
         } else {
-            analog_layer->data = layer_get_data(analog_layer->layer);
+            sky_layer->data = layer_get_data(sky_layer->layer);
             layer_set_update_proc(
-                    analog_layer->layer,
-                    bsky_analog_layer_update);
+                    sky_layer->layer,
+                    bsky_sky_layer_update);
         }
     }
-    return analog_layer;
+    return sky_layer;
 }
 
-void bsky_analog_layer_destroy(BSKY_AnalogLayer *analog_layer) {
+void bsky_sky_layer_destroy(BSKY_SkyLayer *sky_layer) {
     APP_LOG(APP_LOG_LEVEL_DEBUG,
-            "bsky_analog_layer_destroy(%p)",
-            analog_layer);
-    layer_destroy(analog_layer->layer);
-    analog_layer->layer = NULL;
-    analog_layer->data = NULL;
-    free(analog_layer);
+            "bsky_sky_layer_destroy(%p)",
+            sky_layer);
+    layer_destroy(sky_layer->layer);
+    sky_layer->layer = NULL;
+    sky_layer->data = NULL;
+    free(sky_layer);
 }
 
-Layer * bsky_analog_layer_get_layer(BSKY_AnalogLayer *analog_layer) {
+Layer * bsky_sky_layer_get_layer(BSKY_SkyLayer *sky_layer) {
     APP_LOG(APP_LOG_LEVEL_DEBUG,
-            "bsky_analog_layer_get_layer(%p)",
-            analog_layer);
-    return analog_layer->layer;
+            "bsky_sky_layer_get_layer(%p)",
+            sky_layer);
+    return sky_layer->layer;
 }
 
-void bsky_analog_layer_set_time(
-        BSKY_AnalogLayer *analog_layer,
+void bsky_sky_layer_set_time(
+        BSKY_SkyLayer *sky_layer,
         time_t time) {
     APP_LOG(APP_LOG_LEVEL_DEBUG,
-            "bsky_analog_layer_set_time(%p, ...)",
-            analog_layer);
-    analog_layer->data->unix_time = time;
+            "bsky_sky_layer_set_time(%p, ...)",
+            sky_layer);
+    sky_layer->data->unix_time = time;
     struct tm * wall_time = localtime(&time);
-    analog_layer->data->wall_time = *wall_time;
-    layer_mark_dirty(analog_layer->layer);
+    sky_layer->data->wall_time = *wall_time;
+    layer_mark_dirty(sky_layer->layer);
 }
