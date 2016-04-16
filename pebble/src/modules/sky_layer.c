@@ -70,11 +70,38 @@ static GRect bsky_rect_trim (const GRect rect, const int8_t trim) {
     return result;
 }
 
+// Callback for bsky_data_skyline_subscribe.
+//
+static void bsky_sky_layer_set_skyline(
+        void * context,
+        const BSKY_Skyline * skyline) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG,
+            "bsky_sky_layer_set_skyline(%p, %p)",
+            context,
+            skyline);
+    BSKY_SkyLayerData * data = layer_get_data((Layer*)context);
+    if (!data->skyline) {
+        APP_LOG(APP_LOG_LEVEL_ERROR,
+                "bsky_sky_layer_set_skyline called before receiving"
+                " buffer was initialized");
+        return;
+    }
+    bsky_skyline_copy(data->skyline, skyline);
+}
+
 static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
     APP_LOG(APP_LOG_LEVEL_DEBUG,
             "bsky_sky_layer_update(%p, %p)",
             layer,
             ctx);
+
+    // It'd make sense to subscribe earlier, but then we might get our
+    // first callback before we're ready to process it, and then we'd
+    // have to hold on to it somehow... but that's what the data module
+    // is for.  Therefore, don't subscribe until we're good and ready!
+    bsky_data_skyline_subscribe(
+            bsky_sky_layer_set_skyline,
+            layer);
 
     const GColor color_sun_fill = GColorYellow;
     const GColor color_sun_stroke = GColorDarkCandyAppleRed;
@@ -156,15 +183,6 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
     // TODO
 }
 
-// Callback for bsky_data_skyline_subscribe.
-//
-static void bsky_sky_layer_set_skyline(
-        void * context,
-        const BSKY_Skyline * skyline) {
-    BSKY_SkyLayerData * data = layer_get_data((Layer*)context);
-    bsky_skyline_copy(data->skyline, skyline);
-}
-
 struct BSKY_SkyLayer {
 
     // The real Pebble layer, of course.
@@ -210,9 +228,6 @@ BSKY_SkyLayer * bsky_sky_layer_create(GRect frame) {
                 layer_set_update_proc(
                         sky_layer->layer,
                         bsky_sky_layer_update);
-                bsky_data_skyline_subscribe(
-                        bsky_sky_layer_set_skyline,
-                        sky_layer);
             }
         }
     }

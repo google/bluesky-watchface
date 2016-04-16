@@ -46,5 +46,7 @@ void bsky_data_skyline_subscribe (
     bsky_data_init();
     s_skyline_handler = handler;
     s_skyline_handler_context = context;
-    s_skyline_handler(s_skyline_handler_context, s_skyline_current);
+    if (s_skyline_handler) {
+        s_skyline_handler(s_skyline_handler_context, s_skyline_current);
+    }
 }
