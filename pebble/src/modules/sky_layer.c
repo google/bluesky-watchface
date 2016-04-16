@@ -181,6 +181,17 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
     graphics_context_set_stroke_width(ctx, 2);
     graphics_draw_circle(ctx, sun_center, sun_diameter/2);
 
+    // Update the Green Earth
+    const GPoint center = {
+        .x=bounds.origin.x+bounds.size.w/2,
+        .y=bounds.origin.y+bounds.size.h/2,
+    };
+    graphics_context_set_fill_color(ctx, GColorInchworm);
+    graphics_fill_circle(ctx, center, sky_diameter/2-sky_thickness);
+    graphics_context_set_stroke_color(ctx, GColorGreen);
+    graphics_context_set_stroke_width(ctx, 4);
+    graphics_draw_circle(ctx, center, sky_diameter/2-sky_thickness-2);
+
     // Draw the Skyline
     // TODO
 }
