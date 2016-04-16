@@ -16,18 +16,23 @@
 #pragma once
 
 // A sky layer, displaying the yellow sun against 24 hours of blue sky.
+//
 typedef struct BSKY_SkyLayer BSKY_SkyLayer;
 
 // Create and return a new sky layer, or NULL.
+//
 BSKY_SkyLayer * bsky_sky_layer_create(GRect frame);
 
 // Deallocate a non-NULL sky layer.
+//
 void bsky_sky_layer_destroy(BSKY_SkyLayer * sky_layer);
 
 // Get the managed Pebble layer.
+//
 Layer * bsky_sky_layer_get_layer(BSKY_SkyLayer * sky_layer);
 
 // Set the position of the sun.
+//
 void bsky_sky_layer_set_time(
         BSKY_SkyLayer * sky_layer,
         time_t time);

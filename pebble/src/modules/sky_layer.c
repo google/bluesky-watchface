@@ -34,25 +34,28 @@
  *   Gregorian Year of 365 or 366 days
  */
 
-/// Custom state per sky layer.
+// Custom state per sky layer.
+//
 typedef struct {
 
     // The "absolute" moment to be displayed.
+    //
     time_t unix_time;
 
     // The timezone-local moment to be displayed.
+    //
     struct tm wall_time;
 
-    // How thick the band of blue sky should be.
-    int16_t sky_thickness;
-
-    // A skyline instance that should be allocated & freed along with
-    // this struct.
+    // The skyline to be rendered against the sky.
+    //
+    // This instance is to be allocated & freed along with this struct.
+    //
     BSKY_Skyline *skyline;
 
 } BSKY_SkyLayerData;
 
-/// Make a smaller rect by trimming the edges of a larger one.
+// Make a smaller rect by trimming the edges of a larger one.
+//
 static GRect bsky_rect_trim (const GRect rect, const int8_t trim) {
     const GRect result = {
         .origin = {
@@ -154,6 +157,7 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
 }
 
 // Callback for bsky_data_skyline_subscribe.
+//
 static void bsky_sky_layer_set_skyline(
         void * context,
         const BSKY_Skyline * skyline) {
@@ -164,10 +168,12 @@ static void bsky_sky_layer_set_skyline(
 struct BSKY_SkyLayer {
 
     // The real Pebble layer, of course.
+    //
     Layer *layer;
 
     // A conveniently typed pointer to custom state data, stored in the
     // layer itself.
+    //
     BSKY_SkyLayerData *data;
 };
 

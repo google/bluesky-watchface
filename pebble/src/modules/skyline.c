@@ -22,7 +22,7 @@ int bsky_skyline_index_from_time(int hour, int minute) {
 }
 
 struct BSKY_Skyline {
-    int8_t heights [BSKY_SKYLINE_RESOLUTION];
+    int8_t heights [BSKY_SKYLINE_LEN];
 };
 
 BSKY_Skyline * bsky_skyline_create() {
@@ -56,7 +56,7 @@ const int8_t * bsky_skyline_get_heights(const BSKY_Skyline * skyline) {
 }
 
 void bsky_skyline_rewrite_random(BSKY_Skyline * skyline) {
-    for (size_t i=0; i<BSKY_SKYLINE_RESOLUTION; ++i) {
+    for (size_t i=0; i<BSKY_SKYLINE_LEN; ++i) {
         skyline->heights[i] = ((i/60) % 4) * 40;
     }
 }

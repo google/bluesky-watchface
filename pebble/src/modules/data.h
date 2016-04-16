@@ -16,7 +16,7 @@
 #pragma once
 
 typedef void (*BSKY_data_skyline_handler) (
-        void * ctx,
+        void * context,
         const BSKY_Skyline * skyline);
 
 // Set the handler for skyline updates.
@@ -27,4 +27,4 @@ typedef void (*BSKY_data_skyline_handler) (
 //
 void bsky_data_skyline_subscribe (
         BSKY_data_skyline_handler handler,
-        void * ctx);
+        void * context);
