@@ -37,6 +37,7 @@ static void sprint_error(char * buffer, size_t n) {
 }
 
 static void update_time() {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "update_time()");
     const time_t now = time(NULL);
     const struct tm *local_now = localtime(&now);
 
@@ -67,6 +68,7 @@ static void update_time() {
 static void tick_handler(
         struct tm *tick_time,
         TimeUnits units_changed) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "tick_handler()");
     // Here we could forward tick_time to avoid having to recompute the
     // local time in update_time, but we may very well want to call
     // update_time in other contexts where we don't have an appropriate
@@ -76,6 +78,7 @@ static void tick_handler(
 }
 
 static void main_window_load(Window *window) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "main_window_load(%p)", window);
     Layer *window_layer = window_get_root_layer(window);
     GRect bounds = layer_get_bounds(window_layer);
 
@@ -121,6 +124,7 @@ static void main_window_load(Window *window) {
 }
 
 static void main_window_unload(Window *window) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "main_window_load(%p)", window);
     text_layer_destroy(s_date_layer);
     s_date_layer = NULL;
     text_layer_destroy(s_time_layer);
@@ -132,6 +136,7 @@ static void main_window_unload(Window *window) {
 }
 
 void main_window_push() {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "main_window_push()");
     if (!s_main_window) {
         s_main_window = window_create();
 

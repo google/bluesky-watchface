@@ -24,6 +24,7 @@ static BSKY_data_skyline_handler s_skyline_handler;
 static void *s_skyline_handler_context;
 
 static void bsky_data_init(void) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_data_init()");
     if (s_skyline_current == NULL) {
         s_skyline_current = bsky_skyline_create();
     }
@@ -38,6 +39,10 @@ static void bsky_data_init(void) {
 void bsky_data_skyline_subscribe (
         BSKY_data_skyline_handler handler,
         void * context) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG,
+            "bsky_data_skyline_subscribe(%p, %p)",
+            handler,
+            context);
     bsky_data_init();
     s_skyline_handler = handler;
     s_skyline_handler_context = context;

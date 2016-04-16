@@ -26,6 +26,7 @@ struct BSKY_Skyline {
 };
 
 BSKY_Skyline * bsky_skyline_create() {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_skyline_create()");
     BSKY_Skyline * skyline = malloc(sizeof(*skyline));
     if (skyline) {
         memset(skyline, 0, sizeof(skyline));
@@ -34,10 +35,16 @@ BSKY_Skyline * bsky_skyline_create() {
 }
 
 void bsky_skyline_destroy(BSKY_Skyline * skyline) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_skyline_destroy(%p)", skyline);
     free (skyline);
 }
 
 void bsky_skyline_copy(BSKY_Skyline * dst, const BSKY_Skyline * src) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG,
+            "bsky_skyline_copy(%p, %p) %u",
+            dst,
+            src,
+            sizeof(*src));
     memcpy(dst, src, sizeof(*src));
 }
 

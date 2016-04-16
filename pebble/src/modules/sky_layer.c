@@ -178,7 +178,12 @@ struct BSKY_SkyLayer {
 };
 
 BSKY_SkyLayer * bsky_sky_layer_create(GRect frame) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_sky_layer_create(...)");
+    APP_LOG(APP_LOG_LEVEL_DEBUG,
+            "bsky_sky_layer_create({%d,%d,%d,%d})",
+            frame.origin.x,
+            frame.origin.y,
+            frame.size.w,
+            frame.size.h);
     BSKY_SkyLayer *sky_layer = malloc(sizeof(*sky_layer));
     if (sky_layer) {
         // Allocate Pebble layer
