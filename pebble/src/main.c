@@ -15,19 +15,15 @@
  */
 #include <pebble.h>
 
-#include "modules/skyline.h"
-#include "modules/data.h"
 #include "windows/main_window.h"
 
 static void init() {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "init()");
-    bsky_data_init();
     main_window_push();
 }
 
 static void deinit() {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "deinit()");
-    bsky_data_deinit();
 }
 
 int main(void) {

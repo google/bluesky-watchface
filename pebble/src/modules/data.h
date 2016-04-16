@@ -15,11 +15,6 @@
  */
 #pragma once
 
-// Should be called once
-void bsky_data_init (void);
-
-void bsky_data_deinit (void);
-
 typedef void (*BSKY_data_skyline_handler) (
         void * ctx,
         const BSKY_Skyline * skyline);

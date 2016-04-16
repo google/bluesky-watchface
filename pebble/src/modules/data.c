@@ -23,7 +23,7 @@ static BSKY_Skyline *s_skyline_incoming;
 static BSKY_data_skyline_handler s_skyline_handler;
 static void *s_skyline_handler_context;
 
-void bsky_data_init(void) {
+static void bsky_data_init(void) {
     if (s_skyline_current == NULL) {
         s_skyline_current = bsky_skyline_create();
     }
@@ -35,18 +35,10 @@ void bsky_data_init(void) {
     }
 }
 
-void bsky_data_deinit(void) {
-    if (s_skyline_current != NULL) {
-        bsky_skyline_destroy(s_skyline_current);
-    }
-    if (s_skyline_incoming != NULL) {
-        bsky_skyline_destroy(s_skyline_incoming);
-    }
-}
-
 void bsky_data_skyline_subscribe (
         BSKY_data_skyline_handler handler,
         void * context) {
+    bsky_data_init();
     s_skyline_handler = handler;
     s_skyline_handler_context = context;
     s_skyline_handler(s_skyline_handler_context, s_skyline_current);
