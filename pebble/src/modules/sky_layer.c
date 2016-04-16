@@ -17,6 +17,7 @@
 
 #include "skyline.h"
 #include "data.h"
+#include "palette.h"
 #include "sky_layer.h"
 
 /* Cycles:
@@ -104,7 +105,7 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
             layer);
 
     const GColor color_sun_fill = GColorYellow;
-    const GColor color_sun_stroke = GColorDarkCandyAppleRed;
+    const GColor color_sun_stroke = BSKY_PALETTE_SUN_DARK;
     const GColor color_sky_fill [] = {
         GColorCyan,
         GColorElectricBlue,

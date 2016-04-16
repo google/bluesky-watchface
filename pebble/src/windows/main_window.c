@@ -17,6 +17,7 @@
 
 #include "modules/skyline.h"
 #include "modules/data.h"
+#include "modules/palette.h"
 #include "modules/sky_layer.h"
 
 static Window *s_main_window;
@@ -104,7 +105,7 @@ static void main_window_load(Window *window) {
             GTextAlignmentCenter);
     text_layer_set_text_color(
             s_time_layer,
-            GColorBlack);
+            BSKY_PALETTE_SUN_DARK);
     layer_add_child(window_layer, text_layer_get_layer(s_time_layer));
 
     s_date_layer = text_layer_create(GRect(0, 92, bounds.size.w, 26));
