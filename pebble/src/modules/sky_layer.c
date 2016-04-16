@@ -121,15 +121,16 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
     graphics_context_set_fill_color(ctx, GColorClear);
     graphics_fill_rect(ctx, bounds, 0, 0);
 
-    // TODO: find value of inset_thickness based on available size, or
-    //       set through public API of this module.
+    const GRect sky_bounds = bounds;
+    const int16_t sky_diameter = 
+        (sky_bounds.size.w > sky_bounds.size.h)
+        ? sky_bounds.size.h
+        : sky_bounds.size.w;
 
     // Update the Blue Sky
-    const GRect sky_bounds = bounds;
-    const int16_t sky_thickness =
-        (sky_bounds.size.w > sky_bounds.size.h)
-        ? sky_bounds.size.h / 6
-        : sky_bounds.size.w / 6;
+    // TODO: find value of sky_thickness based on available size, or set
+    //       through public API of this module.
+    const int16_t sky_thickness = sky_diameter / 5;
     for (int8_t sky_fill=0; sky_fill<color_sky_fill_len; ++sky_fill) {
         graphics_context_set_fill_color(ctx, color_sky_fill[sky_fill]);
         graphics_fill_radial(
@@ -168,8 +169,8 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
     const int32_t sun_angle = midnight_angle
         + TRIG_MAX_ANGLE * data->wall_time.tm_hour / 24
         + TRIG_MAX_ANGLE * data->wall_time.tm_min / (24 * 60);
-    const int32_t sun_diameter = sky_thickness*3/4;
-    const GRect sun_orbit = bsky_rect_trim(sky_bounds, sky_thickness/2);
+    const int32_t sun_diameter = sky_diameter / 8;
+    const GRect sun_orbit = bsky_rect_trim(sky_bounds, sun_diameter/2+2);
     const GPoint sun_center = gpoint_from_polar(
             sun_orbit,
             GOvalScaleModeFitCircle,
