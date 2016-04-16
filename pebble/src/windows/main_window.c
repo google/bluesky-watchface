@@ -54,10 +54,10 @@ static void update_time() {
     }
     text_layer_set_text(s_time_layer, s_time_buffer);
 
-    static char s_date_buffer[10];
+    static char s_date_buffer[7];
     if (0 == strftime(s_date_buffer,
                 sizeof(s_date_buffer),
-                "%a %m-%d",
+                "%a %d",
                 local_now)) {
         sprint_error(s_date_buffer, sizeof(s_date_buffer));
     }
