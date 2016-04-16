@@ -13,25 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <pebble.h>
+#pragma once
 
-#include "modules/data.h"
-#include "windows/main_window.h"
+#include "skyline.h"
 
-static void init() {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "init()");
-    bsky_data_init();
-    main_window_push();
-}
+// Should be called once
+void bsky_data_init (void);
 
-static void deinit() {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "deinit()");
-    bsky_data_deinit();
-}
+void bsky_data_deinit (void);
 
-int main(void) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "main()");
-    init();
-    app_event_loop();
-    deinit();
-}
+typedef void (*BSKY_data_skyline_handler) (
+        void * ctx,
+        const BSKY_Skyline * skyline);
+
+// Set the handler for skyline updates.
+//
+// The existing handler, if any, will be replaced.  A NULL handler
+// indicates that the app is not interested in skyline updates.  The
+// implementation may decide not to request updates in this case.
+//
+void bsky_data_skyline_subscribe (
+        BSKY_data_skyline_handler handler,
+        void * ctx);

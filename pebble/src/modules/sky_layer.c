@@ -14,7 +14,10 @@
  * limitations under the License.
  */
 #include <pebble.h>
+
 #include "sky_layer.h"
+
+#include "data.h"
 
 /* Cycles:
  *  Regular numeric cycles:
@@ -43,7 +46,11 @@ typedef struct {
     // How thick the band of blue sky should be.
     int16_t sky_thickness;
 
-} BSKY_SkyData;
+    // A skyline instance that should be allocated & freed along with
+    // this struct.
+    BSKY_Skyline *skyline;
+
+} BSKY_SkyLayerData;
 
 /// Make a smaller rect by trimming the edges of a larger one.
 static GRect bsky_rect_trim (const GRect rect, const int8_t trim) {
@@ -77,7 +84,7 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
         sizeof(color_sky_fill) / sizeof(color_sky_fill[0]);
     const GColor color_sky_stroke = GColorBlueMoon;
 
-    const BSKY_SkyData * const data = layer_get_data(layer);
+    const BSKY_SkyLayerData * const data = layer_get_data(layer);
     const GRect bounds = layer_get_bounds(layer);
 
     graphics_context_set_fill_color(ctx, GColorClear);
@@ -141,6 +148,17 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
     graphics_context_set_stroke_color(ctx, color_sun_stroke);
     graphics_context_set_stroke_width(ctx, 2);
     graphics_draw_circle(ctx, sun_center, sun_diameter/2);
+
+    // Draw the Skyline
+    // TODO
+}
+
+// Callback for bsky_data_skyline_subscribe.
+static void bsky_sky_layer_set_skyline(
+        void * context,
+        const BSKY_Skyline * skyline) {
+    BSKY_SkyLayerData * data = layer_get_data((Layer*)context);
+    bsky_skyline_copy(data->skyline, skyline);
 }
 
 struct BSKY_SkyLayer {
@@ -150,24 +168,41 @@ struct BSKY_SkyLayer {
 
     // A conveniently typed pointer to custom state data, stored in the
     // layer itself.
-    BSKY_SkyData *data;
+    BSKY_SkyLayerData *data;
 };
 
 BSKY_SkyLayer * bsky_sky_layer_create(GRect frame) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_sky_layer_create(...)");
     BSKY_SkyLayer *sky_layer = malloc(sizeof(*sky_layer));
     if (sky_layer) {
+        // Allocate Pebble layer
         sky_layer->layer = layer_create_with_data(
                 frame,
-                sizeof(BSKY_SkyData));
+                sizeof(BSKY_SkyLayerData));
         if (!sky_layer->layer) {
+            APP_LOG(APP_LOG_LEVEL_ERROR,
+                    "bsky_sky_layer_create: out of memory at"
+                    " layer_create_with_data");
             free(sky_layer);
             sky_layer = NULL;
         } else {
+            // Allocate additional memory for skyline path info and
+            // store pointer in custom data section of Pebble layer
             sky_layer->data = layer_get_data(sky_layer->layer);
-            layer_set_update_proc(
-                    sky_layer->layer,
-                    bsky_sky_layer_update);
+            sky_layer->data->skyline = bsky_skyline_create();
+            if (!sky_layer->data->skyline) {
+                APP_LOG(APP_LOG_LEVEL_ERROR, "out of memory");
+                layer_destroy(sky_layer->layer);
+                free(sky_layer);
+                sky_layer = NULL;
+            } else {
+                layer_set_update_proc(
+                        sky_layer->layer,
+                        bsky_sky_layer_update);
+                bsky_data_skyline_subscribe(
+                        bsky_sky_layer_set_skyline,
+                        sky_layer);
+            }
         }
     }
     return sky_layer;
