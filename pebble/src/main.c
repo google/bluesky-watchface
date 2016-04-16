@@ -15,6 +15,7 @@
  */
 #include <pebble.h>
 
+#include "modules/skyline.h"
 #include "modules/data.h"
 #include "windows/main_window.h"
 

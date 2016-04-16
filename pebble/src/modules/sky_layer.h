@@ -15,8 +15,6 @@
  */
 #pragma once
 
-#include "modules/skyline.h"
-
 // A sky layer, displaying the yellow sun against 24 hours of blue sky.
 typedef struct BSKY_SkyLayer BSKY_SkyLayer;
 

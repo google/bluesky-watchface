@@ -15,8 +15,6 @@
  */
 #pragma once
 
-#include "skyline.h"
-
 // Should be called once
 void bsky_data_init (void);
 

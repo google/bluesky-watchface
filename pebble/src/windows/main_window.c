@@ -15,8 +15,8 @@
  */
 #include <pebble.h>
 
-#include "modules/data.h"
 #include "modules/skyline.h"
+#include "modules/data.h"
 #include "modules/sky_layer.h"
 
 static Window *s_main_window;

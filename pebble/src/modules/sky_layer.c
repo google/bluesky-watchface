@@ -15,9 +15,9 @@
  */
 #include <pebble.h>
 
-#include "sky_layer.h"
-
+#include "skyline.h"
 #include "data.h"
+#include "sky_layer.h"
 
 /* Cycles:
  *  Regular numeric cycles:
