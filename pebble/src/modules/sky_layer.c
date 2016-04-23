@@ -106,19 +106,12 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
 
     const GColor color_sun_fill = GColorYellow;
     const GColor color_sun_stroke = BSKY_PALETTE_SUN_DARK;
-    const GColor color_sky_fill [] = {
-        GColorCyan,
-        GColorElectricBlue,
-        GColorCeleste,
-    };
-    const int8_t color_sky_fill_len =
-        sizeof(color_sky_fill) / sizeof(color_sky_fill[0]);
     const GColor color_sky_stroke = GColorBlueMoon;
 
     const BSKY_SkyLayerData * const data = layer_get_data(layer);
     const GRect bounds = layer_get_bounds(layer);
 
-    graphics_context_set_fill_color(ctx, GColorClear);
+    graphics_context_set_fill_color(ctx, GColorVividCerulean);
     graphics_fill_rect(ctx, bounds, 0, 0);
 
     const GRect sky_bounds = bounds;
@@ -127,26 +120,9 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
         ? sky_bounds.size.h
         : sky_bounds.size.w;
 
-    // Update the Blue Sky
-    // TODO: find value of sky_thickness based on available size, or set
-    //       through public API of this module.
-    const int16_t sky_thickness = sky_diameter / 5;
-    for (int8_t sky_fill=0; sky_fill<color_sky_fill_len; ++sky_fill) {
-        graphics_context_set_fill_color(ctx, color_sky_fill[sky_fill]);
-        graphics_fill_radial(
-                ctx,
-                bsky_rect_trim(
-                    sky_bounds,
-                    sky_thickness * sky_fill / color_sky_fill_len),
-                GOvalScaleModeFitCircle,
-                sky_thickness / color_sky_fill_len,
-                0,
-                TRIG_MAX_ANGLE);
-    }
-
     // Update the 24 hour markers
     const int32_t midnight_angle = TRIG_MAX_ANGLE / 2;
-    const GRect sky_inset = bsky_rect_trim(sky_bounds, sky_thickness);
+    const GRect sky_inset = bsky_rect_trim(sky_bounds, sky_diameter / 5);
     graphics_context_set_stroke_color(ctx, color_sky_stroke);
     graphics_context_set_antialiased(ctx, true);
     for (int32_t hour = 0; hour < 24; ++hour) {
@@ -187,10 +163,10 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
         .y=bounds.origin.y+bounds.size.h/2,
     };
     graphics_context_set_fill_color(ctx, GColorInchworm);
-    graphics_fill_circle(ctx, center, sky_diameter/2-sky_thickness);
-    graphics_context_set_stroke_color(ctx, GColorGreen);
-    graphics_context_set_stroke_width(ctx, 4);
-    graphics_draw_circle(ctx, center, sky_diameter/2-sky_thickness-2);
+    graphics_fill_circle(ctx, center, sky_diameter/2-(sky_diameter/5));
+    //graphics_context_set_stroke_color(ctx, GColorGreen);
+    //graphics_context_set_stroke_width(ctx, 4);
+    //graphics_draw_circle(ctx, center, sky_diameter/2-sky_thickness-2);
 
     // Draw the Skyline
     // TODO
