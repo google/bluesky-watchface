@@ -106,19 +106,20 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
 
     const GColor color_sun_fill = GColorYellow;
     const GColor color_sun_stroke = BSKY_PALETTE_SUN_DARK;
-    const GColor color_sky_stroke = GColorBlueMoon;
+    const GColor color_sky_stroke = GColorWhite;
 
     const BSKY_SkyLayerData * const data = layer_get_data(layer);
     const GRect bounds = layer_get_bounds(layer);
-
-    graphics_context_set_fill_color(ctx, GColorVividCerulean);
-    graphics_fill_rect(ctx, bounds, 0, 0);
 
     const GRect sky_bounds = bounds;
     const int16_t sky_diameter = 
         (sky_bounds.size.w > sky_bounds.size.h)
         ? sky_bounds.size.h
         : sky_bounds.size.w;
+
+    // Paint the sky blue
+    graphics_context_set_fill_color(ctx, GColorVividCerulean);
+    graphics_fill_rect(ctx, sky_bounds, 0, 0);
 
     // Update the 24 hour markers
     const int32_t midnight_angle = TRIG_MAX_ANGLE / 2;
@@ -145,7 +146,7 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
     const int32_t sun_angle = midnight_angle
         + TRIG_MAX_ANGLE * data->wall_time.tm_hour / 24
         + TRIG_MAX_ANGLE * data->wall_time.tm_min / (24 * 60);
-    const int32_t sun_diameter = sky_diameter / 8;
+    const int32_t sun_diameter = sky_diameter / 6;
     const GRect sun_orbit = bsky_rect_trim(sky_bounds, sun_diameter/2+2);
     const GPoint sun_center = gpoint_from_polar(
             sun_orbit,
@@ -164,9 +165,6 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
     };
     graphics_context_set_fill_color(ctx, GColorInchworm);
     graphics_fill_circle(ctx, center, sky_diameter/2-(sky_diameter/5));
-    //graphics_context_set_stroke_color(ctx, GColorGreen);
-    //graphics_context_set_stroke_width(ctx, 4);
-    //graphics_draw_circle(ctx, center, sky_diameter/2-sky_thickness-2);
 
     // Draw the Skyline
     // TODO
