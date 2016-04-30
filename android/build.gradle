@@ -12,10 +12,21 @@ android {
     compileSdkVersion 'android-16'
     buildToolsVersion '22.0.1'
 
+    defaultConfig {
+        minSdkVersion 16
+        targetSdkVersion 21
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFile getDefaultProguardFile('proguard-android.txt')
         }
     }
+}
+
+dependencies {
+    compile 'com.getpebble:pebblekit:3.0.0'
+}
+repositories {
+    mavenCentral()
 }
