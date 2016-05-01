@@ -17,6 +17,9 @@ package ca.joshuatacoma.bluesky;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.widget.Toast;
+
+import com.getpebble.android.kit.PebbleKit;
 
 public class MainActivity extends Activity
 {
@@ -26,5 +29,17 @@ public class MainActivity extends Activity
     {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        boolean isConnected = PebbleKit.isWatchConnected(this);
+        Toast
+            .makeText(
+                    this,
+                    "Pebble " + (isConnected ? "is" : "is not") + " connected",
+                    Toast.LENGTH_LONG)
+            .show();
     }
 }
