@@ -76,6 +76,8 @@ static void tick_handler(
     // value to pass in.  Therefore, update_time will ultimately have to
     // be reponsible for computing the local time anyway.
     update_time();
+
+    bsky_data_update();
 }
 
 static void main_window_load(Window *window) {
