@@ -23,5 +23,14 @@
                     />
             </intent-filter>
         </activity>
+        <receiver
+            android:name=".MainReceiver"
+            >
+            <intent-filter>
+                <action
+                    android:name="com.getpebble.action.app.RECEIVE"
+                    />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>
