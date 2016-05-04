@@ -198,8 +198,17 @@ void bsky_data_update(void) {
         return;
     }
 
+    bool need_update = false;
+    if (app_sync_get(&s_sync, BSKY_DATAKEY_AGENDA_NEEDED)->value->int32
+            != s_agenda_needed) {
+        need_update = true;
+    }
+    if (!need_update) {
+        return;
+    }
+
     Tuplet values[] = {
-        TupletInteger(BSKY_DATAKEY_AGENDA_NEEDED, (int32_t) 24*60*60),
+        TupletInteger(BSKY_DATAKEY_AGENDA_NEEDED, s_agenda_needed),
     };
 
     AppMessageResult result = app_sync_set(
