@@ -1,6 +1,8 @@
 {
     "appKeys": {
-        "AgendaNeededKey": 1
+        "AgendaNeedSecondsKey": 1,
+        "AgendaCapacityBytesKey": 2,
+        "AgendaKey": 3
     },
     "capabilities": [
         ""
