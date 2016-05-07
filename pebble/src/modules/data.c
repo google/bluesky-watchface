@@ -326,7 +326,9 @@ void bsky_data_update(void) {
     {
         APP_LOG(APP_LOG_LEVEL_DEBUG,
                 "bsky_data_update: nothing to do");
-        return;
+        //return; TODO: stop sending extra messages
+        APP_LOG(APP_LOG_LEVEL_WARNING,
+                "bsky_data_update: doing it anyway just to test");
     }
 
     // Send update using app_sync_set
