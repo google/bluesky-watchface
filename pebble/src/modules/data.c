@@ -112,7 +112,14 @@ static uint8_t * s_buffer;
 static size_t s_buffer_size;
 
 bool bsky_data_init(void) {
+    // We use static bool values help to ensure this method is
+    // idempotent and can safely be called many times over as a way to
+    // ensure, whenever we want to, that this module is initialized.
+
     static bool s_bsky_data_inited_already = false;
+    static bool s_app_message_opened_already = false;
+    static bool s_app_sync_inited_already = false;
+
     if (s_bsky_data_inited_already) { return true; }
     APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_data_init()");
 
@@ -129,6 +136,10 @@ bool bsky_data_init(void) {
     bsky_skyline_rewrite_random (s_skyline_current);
 
     // Calculate and allocate memory for the sync dictionary.
+    //
+    // The general approach here with s_agenda_capacity_bytes is to
+    // start with an ideal maximum and cut it in half any time an
+    // allocation fails.
     //
     if (!s_buffer) {
         s_agenda_capacity_bytes = MAX_AGENDA_CAPACITY_BYTES;
@@ -158,43 +169,48 @@ bool bsky_data_init(void) {
                 " s_agenda_capacity_bytes=%ld",
                 s_buffer_size,
                 s_agenda_capacity_bytes);
-        return false;
     }
 
-    // This is idempotent if and only if subsequent calls to
-    // app_message_open just reset the inbound and outbound buffer
-    // lengths.
+    // Open the app_message inbox and outboxes.  Doing this before
+    // registering app_message event handlers may result in dropping
+    // some incoming messages, however we will be resilient to this.
     //
-    const uint32_t size_outbound = dict_calc_buffer_size(
-            2,
-            sizeof(int32_t),
-            sizeof(int32_t));
-    AppMessageResult result; // lint...
-    while (s_agenda_capacity_bytes >= MIN_AGENDA_CAPACITY_BYTES) {
-        const uint32_t size_inbound = dict_calc_buffer_size(
-                1,
-                s_agenda_capacity_bytes);
-        result = app_message_open(
-                size_inbound,
-                size_outbound);
-        if (result != APP_MSG_OUT_OF_MEMORY) {
-            APP_LOG(APP_LOG_LEVEL_DEBUG,
-                    "app_message_open:"
-                    " size_inbound=%lu,size_outbound=%lu",
+    if (!s_app_message_opened_already) {
+        const uint32_t size_outbound = dict_calc_buffer_size(
+                2,
+                sizeof(int32_t),
+                sizeof(int32_t));
+        AppMessageResult result; // lint...
+        while (s_agenda_capacity_bytes >= MIN_AGENDA_CAPACITY_BYTES) {
+            const uint32_t size_inbound = dict_calc_buffer_size(
+                    1,
+                    s_agenda_capacity_bytes);
+            result = app_message_open(
                     size_inbound,
                     size_outbound);
-            break;
+            if (result != APP_MSG_OUT_OF_MEMORY) {
+                APP_LOG(APP_LOG_LEVEL_DEBUG,
+                        "app_message_open:"
+                        " size_inbound=%lu,size_outbound=%lu",
+                        size_inbound,
+                        size_outbound);
+                break;
+            }
+            s_agenda_capacity_bytes /= 2;
+            if (s_agenda_capacity_bytes < MIN_AGENDA_CAPACITY_BYTES) {
+                s_agenda_capacity_bytes = 0;
+                APP_LOG(APP_LOG_LEVEL_INFO,
+                        "stopping at tried-everything");
+                break;
+            }
         }
-        s_agenda_capacity_bytes /= 2;
-        if (s_agenda_capacity_bytes < MIN_AGENDA_CAPACITY_BYTES) {
-            s_agenda_capacity_bytes = 0;
-            APP_LOG(APP_LOG_LEVEL_INFO, "stopping at tried-everything");
-            break;
+        if (result != APP_MSG_OK) {
+            APP_LOG(APP_LOG_LEVEL_ERROR,
+                    "app_message_open: %u",
+                    result);
+            return false;
         }
-    }
-    if (result != APP_MSG_OK) {
-        APP_LOG(APP_LOG_LEVEL_ERROR, "app_message_open: %u", result);
-        return false;
+        s_app_message_opened_already = true;
     }
 
     // Setup initial tuple values and begin sync.
@@ -208,32 +224,37 @@ bool bsky_data_init(void) {
     // choose values that indicate synchronization has already happened:
     // defaults here typically should be zero.
     //
-    uint8_t * zero_agenda = calloc (s_agenda_capacity_bytes, 1);
-    if (!zero_agenda) {
-        // TODO: handle this differently, maybe by allocating
-        // zero_agenda nearer the beginning of this function.
-        APP_LOG(APP_LOG_LEVEL_ERROR,
-                "bsky_data_init:"
-                " out of memory at inopportune moment");
-        return false;
+    if (!s_app_sync_inited_already) {
+        uint8_t * zero_agenda = calloc (s_agenda_capacity_bytes, 1);
+        if (!zero_agenda) {
+            APP_LOG(APP_LOG_LEVEL_ERROR,
+                    "bsky_data_init:"
+                    " out of memory at inopportune moment");
+            return false;
+        }
+        Tuplet initial_values[] = {
+            TupletInteger(
+                    BSKY_DATAKEY_AGENDA_NEED_SECONDS, (int32_t) 0),
+            TupletInteger(
+                    BSKY_DATAKEY_AGENDA_CAPACITY_BYTES, (int32_t) 0),
+            TupletBytes(
+                    BSKY_DATAKEY_AGENDA,
+                    zero_agenda,
+                    sizeof(zero_agenda)),
+        };
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_data_init: app_sync_init()");
+        app_sync_init(
+                &s_sync,
+                s_buffer,
+                s_buffer_size,
+                initial_values,
+                sizeof(initial_values)/sizeof(initial_values[0]),
+                bsky_data_sync_tuple_changed,
+                bsky_data_sync_error,
+                NULL);
+        free (zero_agenda);
+        s_app_sync_inited_already = true;
     }
-    Tuplet initial_values[] = {
-        TupletInteger(BSKY_DATAKEY_AGENDA_NEED_SECONDS, (int32_t) 0),
-        TupletInteger(BSKY_DATAKEY_AGENDA_CAPACITY_BYTES, (int32_t) 0),
-        TupletBytes(
-                BSKY_DATAKEY_AGENDA, zero_agenda, sizeof(zero_agenda)),
-    };
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_data_init: app_sync_init()");
-    app_sync_init(
-            &s_sync,
-            s_buffer,
-            s_buffer_size,
-            initial_values,
-            sizeof(initial_values)/sizeof(initial_values[0]),
-            bsky_data_sync_tuple_changed,
-            bsky_data_sync_error,
-            NULL);
-    free (zero_agenda);
 
     // Set initial value for "agenda need seconds".  This represents
     // the watch's value, rather than the synchronized value, for this
