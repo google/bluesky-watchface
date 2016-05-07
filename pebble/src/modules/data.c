@@ -79,12 +79,17 @@ void bsky_data_sync_tuple_changed (
                     s_agenda_capacity_bytes);
             break;
         case BSKY_DATAKEY_AGENDA:
-            APP_LOG(APP_LOG_LEVEL_INFO,
-                    "bsky_data_sync_update: agenda"
-                    ",agenda_length_bytes=%ld",
-                    new_tuple->length);
             s_agenda = new_tuple->value->data;
             s_agenda_length_bytes = new_tuple->length;
+            APP_LOG(APP_LOG_LEVEL_INFO,
+                    "bsky_data_sync_update: agenda"
+                    ",agenda_length_bytes=%ld"
+                    ",agenda[0..3]=%02x%02x%02x%02x",
+                    s_agenda_length_bytes,
+                    s_agenda[0],
+                    s_agenda[1],
+                    s_agenda[2],
+                    s_agenda[3]);
             break;
     }
 }
