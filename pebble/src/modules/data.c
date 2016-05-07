@@ -39,7 +39,7 @@ enum BSKY_DataKey {
     BSKY_DATAKEY_AGENDA_CAPACITY_BYTES = 2,
     BSKY_DATAKEY_AGENDA = 3,
     BSKY_DATAKEY_AGENDA_VERSION = 4,
-    BSKY_DATAKEY_PEBBLE_NOW = 5,
+    BSKY_DATAKEY_PEBBLE_NOW_UNIX_TIME = 5,
 };
 
 static void bsky_data_call_receiver(bool changed) {
@@ -125,7 +125,7 @@ static void bsky_data_sync_tuple_changed (
                 s_agenda_version = new_tuple->value->int32;
             }
             break;
-        case BSKY_DATAKEY_PEBBLE_NOW:
+        case BSKY_DATAKEY_PEBBLE_NOW_UNIX_TIME:
             APP_LOG(APP_LOG_LEVEL_DEBUG,
                     "bsky_data_sync_update:"
                     " pebble_now=%ld"
@@ -281,7 +281,8 @@ bool bsky_data_init(void) {
             TupletInteger(
                     BSKY_DATAKEY_AGENDA_VERSION, (int32_t) 0),
             TupletInteger(
-                    BSKY_DATAKEY_PEBBLE_NOW, (int32_t) time(NULL)),
+                    BSKY_DATAKEY_PEBBLE_NOW_UNIX_TIME,
+                    (int32_t) time(NULL)),
         };
         APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_data_init: app_sync_init()");
         app_sync_init(
@@ -352,7 +353,8 @@ void bsky_data_update(void) {
                 BSKY_DATAKEY_AGENDA_CAPACITY_BYTES,
                 s_agenda_capacity_bytes),
         TupletInteger(
-                BSKY_DATAKEY_PEBBLE_NOW, (int32_t) time(NULL)),
+                BSKY_DATAKEY_PEBBLE_NOW_UNIX_TIME,
+                (int32_t) time(NULL)),
     };
     AppMessageResult result = app_sync_set(
             &s_sync, values, sizeof(values)/sizeof(values[0]));

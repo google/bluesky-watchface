@@ -4,7 +4,7 @@
         "AgendaCapacityBytesKey": 2,
         "AgendaKey": 3,
         "AgendaVersionKey": 4,
-        "PebbleNowKey": 5
+        "PebbleNowUnixTimeKey": 5
     },
     "capabilities": [
         ""
