@@ -25,7 +25,7 @@ static void *s_skyline_handler_context;
 static int32_t s_agenda_need_seconds;
 static int32_t s_agenda_capacity_bytes;
 static int32_t s_agenda_length_bytes;
-static uint8_t * s_agenda;
+static const uint8_t * s_agenda;
 
 #define MAX_AGENDA_CAPACITY_BYTES (1<<12)
 #define MIN_AGENDA_CAPACITY_BYTES (64)
