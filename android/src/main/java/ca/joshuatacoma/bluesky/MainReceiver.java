@@ -21,6 +21,7 @@ import android.widget.Toast;
 import com.getpebble.android.kit.PebbleKit;
 import com.getpebble.android.kit.util.PebbleDictionary;
 
+import java.util.Date;
 import java.util.UUID;
 
 public class MainReceiver extends PebbleKit.PebbleDataReceiver
@@ -31,6 +32,7 @@ public class MainReceiver extends PebbleKit.PebbleDataReceiver
     static final int BLUESKY_AGENDA_NEED_SECONDS_KEY = 1;
     static final int BLUESKY_AGENDA_CAPACITY_BYTES = 2;
     static final int BLUESKY_AGENDA_KEY = 3;
+    static final int BLUESKY_AGENDA_VERSION_KEY = 4;
 
     public MainReceiver() {
         super(BLUESKY_UUID);
@@ -62,7 +64,9 @@ public class MainReceiver extends PebbleKit.PebbleDataReceiver
                 .show();
 
             PebbleDictionary message = new PebbleDictionary();
+            int version = (int) (new Date().getTime() % 0xffffffffL);
             message.addBytes(BLUESKY_AGENDA_KEY, new byte[] { 0x12, 0x34, 0x56, 0x78 });
+            message.addInt32(BLUESKY_AGENDA_VERSION_KEY, version);
             PebbleKit.sendDataToPebble(context, BLUESKY_UUID, message);
         }
     }
