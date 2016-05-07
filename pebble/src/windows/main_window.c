@@ -15,7 +15,6 @@
  */
 #include <pebble.h>
 
-#include "modules/skyline.h"
 #include "modules/data.h"
 #include "modules/palette.h"
 #include "modules/sky_layer.h"

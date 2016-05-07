@@ -15,13 +15,10 @@
  */
 #include <pebble.h>
 
-#include "skyline.h"
 #include "data.h"
 
-static BSKY_Skyline *s_skyline_current;
-static BSKY_Skyline *s_skyline_incoming;
-static BSKY_data_skyline_handler s_skyline_handler;
-static void *s_skyline_handler_context;
+static BSKY_data_receiver s_receiver;
+static void *s_receiver_context;
 static int32_t s_agenda_need_seconds;
 static int32_t s_agenda_capacity_bytes;
 static int32_t s_agenda_length_bytes;
@@ -42,17 +39,17 @@ enum BSKY_DataKey {
     BSKY_DATAKEY_AGENDA = 3,
 };
 
-void bsky_data_skyline_subscribe (
-        BSKY_data_skyline_handler handler,
+void bsky_data_set_receiver (
+        BSKY_data_receiver receiver,
         void * context) {
     APP_LOG(APP_LOG_LEVEL_DEBUG,
-            "bsky_data_skyline_subscribe(%p, %p)",
-            handler,
+            "bsky_data_set_receiver(%p, %p)",
+            receiver,
             context);
-    s_skyline_handler = handler;
-    s_skyline_handler_context = context;
-    if (bsky_data_init() && s_skyline_handler) {
-        s_skyline_handler(s_skyline_handler_context, s_skyline_current);
+    s_receiver = receiver;
+    s_receiver_context = context;
+    if (s_receiver && bsky_data_init()) {
+        s_receiver(s_receiver_context, s_agenda, s_agenda_length_bytes);
     }
 }
 
@@ -122,18 +119,6 @@ bool bsky_data_init(void) {
 
     if (s_bsky_data_inited_already) { return true; }
     APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_data_init()");
-
-    // Try to be idempotent: don't allocate new skyline structs if
-    // current pointers are non-NULL.
-    s_skyline_current = s_skyline_current
-        ? s_skyline_current
-        : bsky_skyline_create();
-    s_skyline_incoming = s_skyline_incoming
-        ? s_skyline_incoming
-        : bsky_skyline_create();
-
-    // TODO: remove this line when real data starts arriving.
-    bsky_skyline_rewrite_random (s_skyline_current);
 
     // Calculate and allocate memory for the sync dictionary.
     //

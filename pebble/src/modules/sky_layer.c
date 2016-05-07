@@ -15,7 +15,6 @@
  */
 #include <pebble.h>
 
-#include "skyline.h"
 #include "data.h"
 #include "palette.h"
 #include "sky_layer.h"
@@ -47,11 +46,10 @@ typedef struct {
     //
     struct tm wall_time;
 
-    // The skyline to be rendered against the sky.
+    // Agenda data to be rendered as a skyline.
     //
-    // This instance is to be allocated & freed along with this struct.
-    //
-    BSKY_Skyline *skyline;
+    const uint8_t * agenda;
+    int32_t agenda_length_bytes;
 
 } BSKY_SkyLayerData;
 
@@ -71,23 +69,20 @@ static GRect bsky_rect_trim (const GRect rect, const int8_t trim) {
     return result;
 }
 
-// Callback for bsky_data_skyline_subscribe.
+// Callback for bsky_data_set_receiver.
 //
-static void bsky_sky_layer_set_skyline(
+static void bsky_sky_layer_receive_data(
         void * context,
-        const BSKY_Skyline * skyline) {
+        const uint8_t * agenda,
+        int32_t agenda_length_bytes) {
     APP_LOG(APP_LOG_LEVEL_DEBUG,
-            "bsky_sky_layer_set_skyline(%p, %p)",
+            "bsky_sky_layer_receive_data(%p, %p, %ld)",
             context,
-            skyline);
+            agenda,
+            agenda_length_bytes);
     BSKY_SkyLayerData * data = layer_get_data((Layer*)context);
-    if (!data->skyline) {
-        APP_LOG(APP_LOG_LEVEL_ERROR,
-                "bsky_sky_layer_set_skyline called before receiving"
-                " buffer was initialized");
-        return;
-    }
-    bsky_skyline_copy(data->skyline, skyline);
+    data->agenda = agenda;
+    data->agenda_length_bytes = agenda_length_bytes;
 }
 
 static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
@@ -100,9 +95,9 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
     // first callback before we're ready to process it, and then we'd
     // have to hold on to it somehow... but that's what the data module
     // is for.  Therefore, don't subscribe until we're good and ready!
-    bsky_data_skyline_subscribe(
-            bsky_sky_layer_set_skyline,
-            layer);
+    bsky_data_set_receiver(
+            bsky_sky_layer_receive_data,
+            NULL);
 
     const GColor color_sun_fill = GColorYellow;
     const GColor color_sun_stroke = BSKY_PALETTE_SUN_DARK;
@@ -202,20 +197,11 @@ BSKY_SkyLayer * bsky_sky_layer_create(GRect frame) {
             free(sky_layer);
             sky_layer = NULL;
         } else {
-            // Allocate additional memory for skyline path info and
-            // store pointer in custom data section of Pebble layer
             sky_layer->data = layer_get_data(sky_layer->layer);
-            sky_layer->data->skyline = bsky_skyline_create();
-            if (!sky_layer->data->skyline) {
-                APP_LOG(APP_LOG_LEVEL_ERROR, "out of memory");
-                layer_destroy(sky_layer->layer);
-                free(sky_layer);
-                sky_layer = NULL;
-            } else {
-                layer_set_update_proc(
-                        sky_layer->layer,
-                        bsky_sky_layer_update);
-            }
+            sky_layer->data->agenda = NULL;
+            layer_set_update_proc(
+                    sky_layer->layer,
+                    bsky_sky_layer_update);
         }
     }
     return sky_layer;

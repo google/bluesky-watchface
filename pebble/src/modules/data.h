@@ -37,16 +37,17 @@ void bsky_data_deinit(void);
 //
 void bsky_data_update(void);
 
-typedef void (*BSKY_data_skyline_handler) (
+typedef void (*BSKY_data_receiver) (
         void * context,
-        const BSKY_Skyline * skyline);
+        const uint8_t * agenda,
+        int32_t agenda_length_bytes);
 
-// Set the handler for skyline updates.
+// Set the receiver for incoming data
 //
-// The existing handler, if any, will be replaced.  A NULL handler
-// indicates that the app is not interested in skyline updates.  The
+// The existing receiver, if any, will be replaced.  A NULL receiver
+// indicates that the app is not interested in receiving anything.  The
 // implementation may decide not to request updates in this case.
 //
-void bsky_data_skyline_subscribe (
-        BSKY_data_skyline_handler handler,
+void bsky_data_set_receiver (
+        BSKY_data_receiver receiver,
         void * context);
