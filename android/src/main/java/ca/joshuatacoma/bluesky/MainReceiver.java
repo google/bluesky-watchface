@@ -28,7 +28,9 @@ public class MainReceiver extends PebbleKit.PebbleDataReceiver
     static final java.util.UUID BLUESKY_UUID
         = new java.util.UUID(0xf205e9af41244829L, 0xa5bb53cc3f8b0362L);
 
-    static final int BLUESKY_AGENDA_NEEDED_KEY = 1;
+    static final int BLUESKY_AGENDA_NEED_SECONDS_KEY = 1;
+    static final int BLUESKY_AGENDA_CAPACITY_BYTES = 2;
+    static final int BLUESKY_AGENDA_KEY = 3;
 
     public MainReceiver() {
         super(BLUESKY_UUID);
@@ -42,16 +44,26 @@ public class MainReceiver extends PebbleKit.PebbleDataReceiver
     {
         PebbleKit.sendAckToPebble(context, id);
 
-        if (data.contains(BLUESKY_AGENDA_NEEDED_KEY))
+        if (data.contains(BLUESKY_AGENDA_NEED_SECONDS_KEY)
+                && data.contains(BLUESKY_AGENDA_CAPACITY_BYTES))
         {
+            long agenda_need_seconds
+                = data.getInteger(BLUESKY_AGENDA_NEED_SECONDS_KEY);
+            long agenda_capacity_bytes
+                = data.getInteger(BLUESKY_AGENDA_CAPACITY_BYTES);
+
             Toast
                 .makeText(
                         context,
                         "Agenda is needed: "
                             + String.valueOf(
-                                data.getInteger(BLUESKY_AGENDA_NEEDED_KEY)),
+                                data.getInteger(BLUESKY_AGENDA_NEED_SECONDS_KEY)),
                         Toast.LENGTH_LONG)
                 .show();
+
+            PebbleDictionary message = new PebbleDictionary();
+            message.addBytes(BLUESKY_AGENDA_KEY, new byte[] { 0x12, 0x34, 0x56, 0x78 });
+            PebbleKit.sendDataToPebble(context, BLUESKY_UUID, message);
         }
     }
 };
