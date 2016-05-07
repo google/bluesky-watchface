@@ -76,8 +76,8 @@ static void bsky_data_sync_tuple_changed (
         const Tuple *new_tuple,
         const Tuple *old_tuple,
         void *context) {
-    bool call_receiver = false;
-    bool agenda_changed = false;
+    static bool call_receiver = false;
+    static bool agenda_version_changed = false;
     switch (key) {
         case BSKY_DATAKEY_AGENDA_NEED_SECONDS:
             APP_LOG(APP_LOG_LEVEL_INFO,
@@ -117,14 +117,18 @@ static void bsky_data_sync_tuple_changed (
                     new_tuple->value->int32,
                     s_agenda_version);
             if (new_tuple->value->int32 != s_agenda_version) {
-                call_receiver = true;
-                agenda_changed = true;
+                // It's possible to receive an agenda version change out
+                // of sync with the agenda update it's really about.
+                // Therefore this approach may be a bit silly.
+                agenda_version_changed = true;
                 s_agenda_version = new_tuple->value->int32;
             }
             break;
     }
     if (call_receiver) {
-        bsky_data_call_receiver(agenda_changed);
+        bsky_data_call_receiver(agenda_version_changed);
+        call_receiver = false;
+        agenda_version_changed = false;
     }
 }
 
