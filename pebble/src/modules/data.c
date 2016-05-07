@@ -25,7 +25,7 @@ static int32_t s_agenda_length_bytes;
 static const uint8_t * s_agenda;
 static int32_t s_agenda_version;
 
-#define MAX_AGENDA_CAPACITY_BYTES (1<<12)
+#define MAX_AGENDA_CAPACITY_BYTES (1<<10)
 #define MIN_AGENDA_CAPACITY_BYTES (64)
 
 // All known data keys, from appinfo.js#appKeys
@@ -152,11 +152,28 @@ static void bsky_data_sync_error (
     // TODO: switch on error to ignore for now (present behavior), retry
     // with another call to bsky_data_update, or disable bsky_data for
     // some time.
+    const char * err_name = NULL;
+    switch (dict_error) {
+        case DICT_NOT_ENOUGH_STORAGE:
+            err_name = "DICT_NOT_ENOUGH_STORAGE"; break;
+        case DICT_INVALID_ARGS:
+            err_name = "DICT_INVALID_ARGS"; break;
+        case DICT_INTERNAL_INCONSISTENCY:
+            err_name = "DICT_INTERNAL_INCONSISTENCY"; break;
+        case DICT_MALLOC_FAILED:
+            err_name = "DICT_MALLOC_FAILED"; break;
+        case DICT_OK:
+            break;
+    }
+    if (err_name) {
+        APP_LOG(APP_LOG_LEVEL_ERROR,
+                "bsky_data_sync_error: %s",
+                err_name);
+    }
 }
 
 static AppSync s_sync;
 static uint8_t * s_buffer;
-static size_t s_buffer_size;
 
 bool bsky_data_init(void) {
     // We use static bool values help to ensure this method is
@@ -170,41 +187,7 @@ bool bsky_data_init(void) {
     if (s_bsky_data_inited_already) { return true; }
     APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_data_init()");
 
-    // Calculate and allocate memory for the sync dictionary.
-    //
-    // The general approach here with s_agenda_capacity_bytes is to
-    // start with an ideal maximum and cut it in half any time an
-    // allocation fails.
-    //
-    if (!s_buffer) {
-        s_agenda_capacity_bytes = MAX_AGENDA_CAPACITY_BYTES;
-        do {
-            s_buffer_size = dict_calc_buffer_size(
-                3,
-                sizeof(int32_t),
-                sizeof(int32_t),
-                s_agenda_capacity_bytes);
-            s_buffer = malloc(s_buffer_size);
-            if (s_buffer) {
-                break;
-            }
-            s_agenda_capacity_bytes /= 2;
-            if (s_agenda_capacity_bytes < MIN_AGENDA_CAPACITY_BYTES) {
-                break;
-            }
-        } while (!s_buffer);
-        if (!s_buffer) {
-            APP_LOG(APP_LOG_LEVEL_ERROR,
-                    "bsky_data_init: malloc(%u) failed",
-                    s_buffer_size);
-            return false;
-        }
-        APP_LOG(APP_LOG_LEVEL_DEBUG,
-                "bsky_data_init: malloc(%u):"
-                " s_agenda_capacity_bytes=%ld",
-                s_buffer_size,
-                s_agenda_capacity_bytes);
-    }
+    s_agenda_capacity_bytes = MAX_AGENDA_CAPACITY_BYTES;
 
     // Open the app_message inbox and outboxes.  Doing this before
     // registering app_message event handlers may result in dropping
@@ -217,30 +200,18 @@ bool bsky_data_init(void) {
                 sizeof(int32_t),
                 sizeof(int32_t));
         AppMessageResult result; // lint...
-        while (s_agenda_capacity_bytes >= MIN_AGENDA_CAPACITY_BYTES) {
-            const uint32_t size_inbound = dict_calc_buffer_size(
-                    2,
-                    s_agenda_capacity_bytes,
-                    sizeof(int32_t));
-            result = app_message_open(
-                    size_inbound,
-                    size_outbound);
-            if (result != APP_MSG_OUT_OF_MEMORY) {
-                APP_LOG(APP_LOG_LEVEL_DEBUG,
-                        "app_message_open:"
-                        " size_inbound=%lu,size_outbound=%lu",
-                        size_inbound,
-                        size_outbound);
-                break;
-            }
-            s_agenda_capacity_bytes /= 2;
-            if (s_agenda_capacity_bytes < MIN_AGENDA_CAPACITY_BYTES) {
-                s_agenda_capacity_bytes = 0;
-                APP_LOG(APP_LOG_LEVEL_INFO,
-                        "stopping at tried-everything");
-                break;
-            }
-        }
+        const uint32_t size_inbound = dict_calc_buffer_size(
+                2,
+                s_agenda_capacity_bytes,
+                sizeof(int32_t));
+        APP_LOG(APP_LOG_LEVEL_DEBUG,
+                "attempting app_message_open:"
+                " size_inbound=%lu,size_outbound=%lu",
+                size_inbound,
+                size_outbound);
+        result = app_message_open(
+                size_inbound,
+                size_outbound);
         if (result != APP_MSG_OK) {
             APP_LOG(APP_LOG_LEVEL_ERROR,
                     "app_message_open: %u",
@@ -262,11 +233,15 @@ bool bsky_data_init(void) {
     // defaults here typically should be zero.
     //
     if (!s_app_sync_inited_already) {
+        if (s_buffer) {
+            free (s_buffer);
+            s_buffer = NULL;
+        }
         uint8_t * zero_agenda = calloc (s_agenda_capacity_bytes, 1);
         if (!zero_agenda) {
             APP_LOG(APP_LOG_LEVEL_ERROR,
                     "bsky_data_init:"
-                    " out of memory at inopportune moment");
+                    " calloc failed to allocate initialization buffer");
             return false;
         }
         Tuplet initial_values[] = {
@@ -277,18 +252,29 @@ bool bsky_data_init(void) {
             TupletBytes(
                     BSKY_DATAKEY_AGENDA,
                     zero_agenda,
-                    sizeof(zero_agenda)),
+                    s_agenda_capacity_bytes),
             TupletInteger(
                     BSKY_DATAKEY_AGENDA_VERSION, (int32_t) 0),
             TupletInteger(
                     BSKY_DATAKEY_PEBBLE_NOW_UNIX_TIME,
                     (int32_t) time(NULL)),
         };
+        uint32_t buffer_size = dict_calc_buffer_size_from_tuplets(
+            initial_values,
+            sizeof(initial_values)/sizeof(initial_values[0]));
+        s_buffer = malloc(buffer_size);
+        if (!s_buffer) {
+            free(zero_agenda);
+            APP_LOG(APP_LOG_LEVEL_ERROR,
+                    "bsky_data_init:"
+                    " malloc failed to allocate sync buffer");
+            return false;
+        }
         APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_data_init: app_sync_init()");
         app_sync_init(
                 &s_sync,
                 s_buffer,
-                s_buffer_size,
+                buffer_size,
                 initial_values,
                 sizeof(initial_values)/sizeof(initial_values[0]),
                 bsky_data_sync_tuple_changed,
