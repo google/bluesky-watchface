@@ -59,6 +59,9 @@ static void bsky_data_call_receiver(bool changed) {
 void bsky_data_set_receiver (
         BSKY_data_receiver receiver,
         void * context) {
+    if (s_receiver == receiver && s_receiver_context == context) {
+        return;
+    }
     APP_LOG(APP_LOG_LEVEL_DEBUG,
             "bsky_data_set_receiver(%p, %p)",
             receiver,
