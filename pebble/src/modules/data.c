@@ -209,8 +209,9 @@ bool bsky_data_init(void) {
         AppMessageResult result; // lint...
         while (s_agenda_capacity_bytes >= MIN_AGENDA_CAPACITY_BYTES) {
             const uint32_t size_inbound = dict_calc_buffer_size(
-                    1,
-                    s_agenda_capacity_bytes);
+                    2,
+                    s_agenda_capacity_bytes,
+                    sizeof(int32_t));
             result = app_message_open(
                     size_inbound,
                     size_outbound);
@@ -267,6 +268,8 @@ bool bsky_data_init(void) {
                     BSKY_DATAKEY_AGENDA,
                     zero_agenda,
                     sizeof(zero_agenda)),
+            TupletInteger(
+                    BSKY_DATAKEY_AGENDA_VERSION, (int32_t) 0),
         };
         APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_data_init: app_sync_init()");
         app_sync_init(
