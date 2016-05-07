@@ -3,7 +3,8 @@
         "AgendaNeedSecondsKey": 1,
         "AgendaCapacityBytesKey": 2,
         "AgendaKey": 3,
-        "AgendaVersionKey": 4
+        "AgendaVersionKey": 4,
+        "PebbleNowKey": 5
     },
     "capabilities": [
         ""

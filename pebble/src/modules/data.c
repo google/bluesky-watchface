@@ -39,6 +39,7 @@ enum BSKY_DataKey {
     BSKY_DATAKEY_AGENDA_CAPACITY_BYTES = 2,
     BSKY_DATAKEY_AGENDA = 3,
     BSKY_DATAKEY_AGENDA_VERSION = 4,
+    BSKY_DATAKEY_PEBBLE_NOW = 5,
 };
 
 static void bsky_data_call_receiver(bool changed) {
@@ -80,7 +81,7 @@ static void bsky_data_sync_tuple_changed (
     static bool agenda_version_changed = false;
     switch (key) {
         case BSKY_DATAKEY_AGENDA_NEED_SECONDS:
-            APP_LOG(APP_LOG_LEVEL_INFO,
+            APP_LOG(APP_LOG_LEVEL_DEBUG,
                     "bsky_data_sync_update:"
                     " agenda_need_seconds=%ld"
                     ",expected=%ld",
@@ -88,7 +89,7 @@ static void bsky_data_sync_tuple_changed (
                     s_agenda_need_seconds);
             break;
         case BSKY_DATAKEY_AGENDA_CAPACITY_BYTES:
-            APP_LOG(APP_LOG_LEVEL_INFO,
+            APP_LOG(APP_LOG_LEVEL_DEBUG,
                     "bsky_data_sync_update:"
                     " agenda_capacity_bytes=%ld"
                     ",expected=%ld",
@@ -123,6 +124,14 @@ static void bsky_data_sync_tuple_changed (
                 agenda_version_changed = true;
                 s_agenda_version = new_tuple->value->int32;
             }
+            break;
+        case BSKY_DATAKEY_PEBBLE_NOW:
+            APP_LOG(APP_LOG_LEVEL_DEBUG,
+                    "bsky_data_sync_update:"
+                    " pebble_now=%ld"
+                    ",time=%ld",
+                    new_tuple->value->int32,
+                    (int32_t) time(NULL));
             break;
     }
     if (call_receiver) {
@@ -203,7 +212,8 @@ bool bsky_data_init(void) {
     //
     if (!s_app_message_opened_already) {
         const uint32_t size_outbound = dict_calc_buffer_size(
-                2,
+                3,
+                sizeof(int32_t),
                 sizeof(int32_t),
                 sizeof(int32_t));
         AppMessageResult result; // lint...
@@ -270,6 +280,8 @@ bool bsky_data_init(void) {
                     sizeof(zero_agenda)),
             TupletInteger(
                     BSKY_DATAKEY_AGENDA_VERSION, (int32_t) 0),
+            TupletInteger(
+                    BSKY_DATAKEY_PEBBLE_NOW, (int32_t) time(NULL)),
         };
         APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_data_init: app_sync_init()");
         app_sync_init(
@@ -339,6 +351,8 @@ void bsky_data_update(void) {
         TupletInteger(
                 BSKY_DATAKEY_AGENDA_CAPACITY_BYTES,
                 s_agenda_capacity_bytes),
+        TupletInteger(
+                BSKY_DATAKEY_PEBBLE_NOW, (int32_t) time(NULL)),
     };
     AppMessageResult result = app_sync_set(
             &s_sync, values, sizeof(values)/sizeof(values[0]));
