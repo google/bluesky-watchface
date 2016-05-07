@@ -37,10 +37,15 @@ void bsky_data_deinit(void);
 //
 void bsky_data_update(void);
 
+struct BSKY_data_receiver_args {
+    const uint8_t * agenda;
+    int32_t agenda_length_bytes;
+    bool agenda_changed;
+};
+
 typedef void (*BSKY_data_receiver) (
         void * context,
-        const uint8_t * agenda,
-        int32_t agenda_length_bytes);
+        struct BSKY_data_receiver_args args);
 
 // Set the receiver for incoming data
 //

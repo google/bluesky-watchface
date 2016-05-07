@@ -23,6 +23,7 @@ static int32_t s_agenda_need_seconds;
 static int32_t s_agenda_capacity_bytes;
 static int32_t s_agenda_length_bytes;
 static const uint8_t * s_agenda;
+static int32_t s_agenda_version;
 
 #define MAX_AGENDA_CAPACITY_BYTES (1<<12)
 #define MIN_AGENDA_CAPACITY_BYTES (64)
@@ -37,7 +38,23 @@ enum BSKY_DataKey {
     BSKY_DATAKEY_AGENDA_NEED_SECONDS = 1,
     BSKY_DATAKEY_AGENDA_CAPACITY_BYTES = 2,
     BSKY_DATAKEY_AGENDA = 3,
+    BSKY_DATAKEY_AGENDA_VERSION = 4,
 };
+
+static void bsky_data_call_receiver(bool changed) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_data_call_receiver()");
+    if (!s_receiver || !bsky_data_init()) {
+        APP_LOG(APP_LOG_LEVEL_DEBUG,
+                "bsky_data_call_receiver: init failed or no receiver");
+        return;
+    }
+    struct BSKY_data_receiver_args args = {
+        .agenda = s_agenda,
+        .agenda_length_bytes = s_agenda_length_bytes,
+        .agenda_changed = changed,
+    };
+    s_receiver(s_receiver_context, args);
+}
 
 void bsky_data_set_receiver (
         BSKY_data_receiver receiver,
@@ -48,16 +65,16 @@ void bsky_data_set_receiver (
             context);
     s_receiver = receiver;
     s_receiver_context = context;
-    if (s_receiver && bsky_data_init()) {
-        s_receiver(s_receiver_context, s_agenda, s_agenda_length_bytes);
-    }
+    bsky_data_call_receiver(false);
 }
 
-void bsky_data_sync_tuple_changed (
+static void bsky_data_sync_tuple_changed (
         const uint32_t key,
         const Tuple *new_tuple,
         const Tuple *old_tuple,
         void *context) {
+    bool call_receiver = false;
+    bool agenda_changed = false;
     switch (key) {
         case BSKY_DATAKEY_AGENDA_NEED_SECONDS:
             APP_LOG(APP_LOG_LEVEL_INFO,
@@ -78,6 +95,7 @@ void bsky_data_sync_tuple_changed (
         case BSKY_DATAKEY_AGENDA:
             s_agenda = new_tuple->value->data;
             s_agenda_length_bytes = new_tuple->length;
+            call_receiver = true;
             APP_LOG(APP_LOG_LEVEL_INFO,
                     "bsky_data_sync_update: agenda"
                     ",agenda_length_bytes=%ld"
@@ -88,10 +106,26 @@ void bsky_data_sync_tuple_changed (
                     s_agenda[2],
                     s_agenda[3]);
             break;
+        case BSKY_DATAKEY_AGENDA_VERSION:
+            APP_LOG(APP_LOG_LEVEL_INFO,
+                    "bsky_data_sync_update:"
+                    " agenda_version=%ld"
+                    ",s_agenda_version=%ld",
+                    new_tuple->value->int32,
+                    s_agenda_version);
+            if (new_tuple->value->int32 != s_agenda_version) {
+                call_receiver = true;
+                agenda_changed = true;
+                s_agenda_version = new_tuple->value->int32;
+            }
+            break;
+    }
+    if (call_receiver) {
+        bsky_data_call_receiver(agenda_changed);
     }
 }
 
-void bsky_data_sync_error (
+static void bsky_data_sync_error (
         DictionaryResult dict_error,
         AppMessageResult app_message_error,
         void *context) {

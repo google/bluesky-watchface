@@ -73,16 +73,25 @@ static GRect bsky_rect_trim (const GRect rect, const int8_t trim) {
 //
 static void bsky_sky_layer_receive_data(
         void * context,
-        const uint8_t * agenda,
-        int32_t agenda_length_bytes) {
+        struct BSKY_data_receiver_args args) {
     APP_LOG(APP_LOG_LEVEL_DEBUG,
-            "bsky_sky_layer_receive_data(%p, %p, %ld)",
-            context,
-            agenda,
-            agenda_length_bytes);
+            "bsky_sky_layer_receive_data:"
+            " agenda=%p"
+            ",agenda_length_bytes=%ld"
+            ",agenda_changed=%s",
+            args.agenda,
+            args.agenda_length_bytes,
+            (args.agenda_changed ? "true" : "false"));
     BSKY_SkyLayerData * data = layer_get_data((Layer*)context);
-    data->agenda = agenda;
-    data->agenda_length_bytes = agenda_length_bytes;
+    bool mark_dirty
+        = args.agenda_changed
+        || (args.agenda == NULL && data->agenda != NULL)
+        || (args.agenda != NULL && data->agenda == NULL);
+    data->agenda = args.agenda;
+    data->agenda_length_bytes = args.agenda_length_bytes;
+    if (mark_dirty) {
+        layer_mark_dirty((Layer*)context);
+    }
 }
 
 static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
@@ -97,7 +106,7 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
     // is for.  Therefore, don't subscribe until we're good and ready!
     bsky_data_set_receiver(
             bsky_sky_layer_receive_data,
-            NULL);
+            layer);
 
     const GColor color_sun_fill = GColorYellow;
     const GColor color_sun_stroke = BSKY_PALETTE_SUN_DARK;
