@@ -50,6 +50,8 @@ typedef struct {
     //
     const uint8_t * agenda;
     int32_t agenda_length_bytes;
+    int32_t agenda_epoch;
+    struct tm agenda_epoch_wall_time;
 
 } BSKY_SkyLayerData;
 
@@ -78,10 +80,12 @@ static void bsky_sky_layer_receive_data(
             "bsky_sky_layer_receive_data:"
             " agenda=%p"
             ",agenda_length_bytes=%ld"
-            ",agenda_changed=%s",
+            ",agenda_changed=%s"
+            ",agenda_epoch=%ld",
             args.agenda,
             args.agenda_length_bytes,
-            (args.agenda_changed ? "true" : "false"));
+            (args.agenda_changed ? "true" : "false"),
+            args.agenda_epoch);
     BSKY_SkyLayerData * data = layer_get_data((Layer*)context);
     bool mark_dirty
         = args.agenda_changed
@@ -89,6 +93,9 @@ static void bsky_sky_layer_receive_data(
         || (args.agenda != NULL && data->agenda == NULL);
     data->agenda = args.agenda;
     data->agenda_length_bytes = args.agenda_length_bytes;
+    data->agenda_epoch = args.agenda_epoch;
+    struct tm * epoch_wall_time = localtime(&data->agenda_epoch);
+    data->agenda_epoch_wall_time = *epoch_wall_time;
     if (mark_dirty) {
         layer_mark_dirty((Layer*)context);
     }
@@ -170,8 +177,39 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
     graphics_context_set_fill_color(ctx, GColorInchworm);
     graphics_fill_circle(ctx, center, sky_diameter/2-(sky_diameter/5));
 
-    // Draw the Skyline
-    // TODO
+    // Draw the Skyline as solid blocks
+    const GRect skyline_bounds = sky_bounds;
+    const uint16_t inset_thickness = sky_diameter/8;
+    const uint8_t * agenda = data->agenda;
+    const int32_t epoch_angle = midnight_angle
+        + TRIG_MAX_ANGLE * data->agenda_epoch_wall_time.tm_hour / 24
+        + TRIG_MAX_ANGLE * data->agenda_epoch_wall_time.tm_min / (24*60);
+    for (int32_t i=0; i<data->agenda_length_bytes; i+=2) {
+        if (agenda[i]==0 && agenda[i+1]==0) {
+            // "null terminated"
+            break;
+        }
+        int32_t start_time = data->agenda_epoch + (agenda[i]*10*60);
+        if (start_time > data->unix_time+24*60*60) {
+            continue;
+        }
+        int32_t end_time = data->agenda_epoch + (agenda[i+1]*10*60);
+        if (end_time <= data->unix_time+24*60*60) {
+            continue;
+        }
+        int32_t angle_start
+            = epoch_angle + agenda[i] * TRIG_MAX_ANGLE / (24 * 6);
+        int32_t angle_end
+            = epoch_angle + agenda[i+1] * TRIG_MAX_ANGLE / (24 * 6);
+        graphics_context_set_fill_color(ctx, GColorBlack);
+        graphics_fill_radial(
+                ctx,
+                skyline_bounds,
+                GOvalScaleModeFitCircle,
+                inset_thickness,
+                angle_start,
+                angle_end);
+    }
 }
 
 struct BSKY_SkyLayer {

@@ -41,6 +41,7 @@ struct BSKY_data_receiver_args {
     const uint8_t * agenda;
     int32_t agenda_length_bytes;
     bool agenda_changed;
+    int32_t agenda_epoch;
 };
 
 typedef void (*BSKY_data_receiver) (

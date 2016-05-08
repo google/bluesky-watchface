@@ -24,6 +24,7 @@ static int32_t s_agenda_capacity_bytes;
 static int32_t s_agenda_length_bytes;
 static const uint8_t * s_agenda;
 static int32_t s_agenda_version;
+static int32_t s_agenda_epoch;
 
 #define MAX_AGENDA_CAPACITY_BYTES (1<<10)
 #define MIN_AGENDA_CAPACITY_BYTES (64)
@@ -40,6 +41,7 @@ enum BSKY_DataKey {
     BSKY_DATAKEY_AGENDA = 3,
     BSKY_DATAKEY_AGENDA_VERSION = 4,
     BSKY_DATAKEY_PEBBLE_NOW_UNIX_TIME = 5,
+    BSKY_DATAKEY_AGENDA_EPOCH = 6,
 };
 
 static void bsky_data_call_receiver(bool changed) {
@@ -53,6 +55,7 @@ static void bsky_data_call_receiver(bool changed) {
         .agenda = s_agenda,
         .agenda_length_bytes = s_agenda_length_bytes,
         .agenda_changed = changed,
+        .agenda_epoch = s_agenda_epoch,
     };
     s_receiver(s_receiver_context, args);
 }
@@ -133,6 +136,13 @@ static void bsky_data_sync_tuple_changed (
                     new_tuple->value->int32,
                     (int32_t) time(NULL));
             break;
+        case BSKY_DATAKEY_AGENDA_EPOCH:
+            APP_LOG(APP_LOG_LEVEL_INFO,
+                    "bsky_data_sync_update:"
+                    " agenda_epoch=%ld",
+                    new_tuple->value->int32);
+            s_agenda_epoch = new_tuple->value->int32;
+            break;
     }
     if (call_receiver) {
         bsky_data_call_receiver(agenda_version_changed);
@@ -203,6 +213,7 @@ bool bsky_data_init(void) {
         const uint32_t size_inbound = dict_calc_buffer_size(
                 2,
                 s_agenda_capacity_bytes,
+                sizeof(int32_t),
                 sizeof(int32_t));
         APP_LOG(APP_LOG_LEVEL_DEBUG,
                 "attempting app_message_open:"
@@ -258,6 +269,9 @@ bool bsky_data_init(void) {
             TupletInteger(
                     BSKY_DATAKEY_PEBBLE_NOW_UNIX_TIME,
                     (int32_t) time(NULL)),
+            TupletInteger(
+                    BSKY_DATAKEY_AGENDA_EPOCH,
+                    (int32_t) 0),
         };
         uint32_t buffer_size = dict_calc_buffer_size_from_tuplets(
             initial_values,
