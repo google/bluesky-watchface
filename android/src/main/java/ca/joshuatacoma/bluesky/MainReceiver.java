@@ -42,6 +42,7 @@ public class MainReceiver extends PebbleKit.PebbleDataReceiver
     static final int BLUESKY_AGENDA_KEY = 3;
     static final int BLUESKY_AGENDA_VERSION_KEY = 4;
     static final int BLUESKY_PEBBLE_NOW_UNIX_TIME = 5;
+    static final int BLUESKY_AGENDA_EPOCH_KEY = 6;
 
     public MainReceiver() {
         super(BLUESKY_UUID);
@@ -179,6 +180,9 @@ public class MainReceiver extends PebbleKit.PebbleDataReceiver
         message.addInt32(
                 BLUESKY_AGENDA_VERSION_KEY,
                 version);
+        message.addInt32(
+                BLUESKY_AGENDA_EPOCH_KEY,
+                (int) (byte_time_epoch * unit_seconds));
         PebbleKit.sendDataToPebble(context, BLUESKY_UUID, message);
     }
 
