@@ -184,17 +184,21 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
     const int32_t epoch_angle = midnight_angle
         + TRIG_MAX_ANGLE * data->agenda_epoch_wall_time.tm_hour / 24
         + TRIG_MAX_ANGLE * data->agenda_epoch_wall_time.tm_min / (24*60);
+    time_t max_start_time = data->unix_time+24*60*60;
+    time_t min_end_time = data->unix_time;
+    time_t soon = data->unix_time+1*60*60;
     for (int32_t i=0; i<data->agenda_length_bytes; i+=2) {
-        if (agenda[i]==0 && agenda[i+1]==0) {
-            // "null terminated"
-            break;
-        }
-        int32_t start_time = data->agenda_epoch + (agenda[i]*10*60);
-        if (start_time > data->unix_time+24*60*60) {
+        if (agenda[i]==agenda[i+1]) {
             continue;
         }
-        int32_t end_time = data->agenda_epoch + (agenda[i+1]*10*60);
-        if (end_time <= data->unix_time+24*60*60) {
+        time_t start_time = data->agenda_epoch + (agenda[i]*10*60);
+        if (start_time > max_start_time) {
+            APP_LOG(APP_LOG_LEVEL_DEBUG, "out of range");
+            continue;
+        }
+        time_t end_time = data->agenda_epoch + (agenda[i+1]*10*60);
+        if (end_time <= min_end_time) {
+            APP_LOG(APP_LOG_LEVEL_DEBUG, "out of range");
             continue;
         }
         GColor color = GColorBlack;
