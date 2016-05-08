@@ -337,7 +337,9 @@ void bsky_data_update(void) {
         = app_sync_get(&s_sync, BSKY_DATAKEY_AGENDA_CAPACITY_BYTES);
     if (agenda_need_seconds->value->int32 == s_agenda_need_seconds
         &&
-        agenda_capacity_bytes->value->int32 == s_agenda_capacity_bytes)
+        agenda_capacity_bytes->value->int32 == s_agenda_capacity_bytes
+        &&
+        s_agenda_version != 0)
     {
         APP_LOG(APP_LOG_LEVEL_DEBUG,
                 "bsky_data_update: nothing to do");
