@@ -53,7 +53,9 @@ static void bsky_data_call_receiver(bool changed) {
     }
     struct BSKY_data_receiver_args args = {
         .agenda = s_agenda,
-        .agenda_length_bytes = s_agenda_length_bytes,
+        .agenda_length_bytes = (s_agenda_version
+                ? s_agenda_length_bytes
+                : 0),
         .agenda_changed = changed,
         .agenda_epoch = s_agenda_epoch,
     };
