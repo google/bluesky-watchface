@@ -94,7 +94,7 @@ static void main_window_load(Window *window) {
     // At this point it's all just guess work and "good enough" results.
 
     s_time_layer = text_layer_create(
-            GRect(0, 52, bounds.size.w, 40));
+            GRect(0, bounds.size.h/2-23, bounds.size.w, 40));
     text_layer_set_background_color(
             s_time_layer,
             GColorClear);
@@ -109,7 +109,7 @@ static void main_window_load(Window *window) {
             BSKY_PALETTE_SUN_DARK);
     layer_add_child(window_layer, text_layer_get_layer(s_time_layer));
 
-    s_date_layer = text_layer_create(GRect(0, 92, bounds.size.w, 26));
+    s_date_layer = text_layer_create(GRect(0, bounds.size.h/2-38, bounds.size.w, 26));
     text_layer_set_background_color(
             s_date_layer,
             GColorClear);

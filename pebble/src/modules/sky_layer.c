@@ -175,7 +175,7 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
         .y=bounds.origin.y+bounds.size.h/2,
     };
     graphics_context_set_fill_color(ctx, GColorWhite);
-    graphics_fill_circle(ctx, center, sky_diameter/2-(sky_diameter/4));
+    graphics_fill_circle(ctx, center, sky_diameter/2-(sky_diameter*3/13));
 
     // Draw the Skyline as solid blocks
     const GRect skyline_bounds = sky_bounds;
