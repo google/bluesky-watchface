@@ -25,6 +25,7 @@ static int32_t s_agenda_length_bytes;
 static const uint8_t * s_agenda;
 static int32_t s_agenda_version;
 static int32_t s_agenda_epoch;
+static bool s_update_in_progress = false;
 
 #define MAX_AGENDA_CAPACITY_BYTES (1<<10)
 #define MIN_AGENDA_CAPACITY_BYTES (64)
@@ -82,6 +83,7 @@ static void bsky_data_sync_tuple_changed (
         const Tuple *new_tuple,
         const Tuple *old_tuple,
         void *context) {
+    s_update_in_progress = false;
     static bool call_receiver = false;
     static bool agenda_version_changed = false;
     switch (key) {
@@ -157,6 +159,7 @@ static void bsky_data_sync_error (
         DictionaryResult dict_error,
         AppMessageResult app_message_error,
         void *context) {
+    s_update_in_progress = false;
     APP_LOG(APP_LOG_LEVEL_WARNING,
             "bsky_data_sync_error(%u,%u)",
             dict_error,
@@ -323,6 +326,12 @@ void bsky_data_deinit(void) {
 }
 
 void bsky_data_update(void) {
+    if (s_update_in_progress) {
+        APP_LOG(APP_LOG_LEVEL_DEBUG,
+                "bsky_data_update:"
+                " update in progress, nothing to do");
+        return;
+    }
     if (!bsky_data_init()) {
         APP_LOG(APP_LOG_LEVEL_WARNING,
                 "bsky_data_update:"
@@ -367,5 +376,6 @@ void bsky_data_update(void) {
     } else {
         APP_LOG(APP_LOG_LEVEL_INFO,
                 "bsky_data_update: app_sync_set: ok!");
+        s_update_in_progress = true;
     }
 }
