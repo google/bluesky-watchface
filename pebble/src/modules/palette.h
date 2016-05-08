@@ -16,3 +16,5 @@
 #pragma once
 
 #define BSKY_PALETTE_SUN_DARK (GColorBulgarianRose)
+#define BSKY_PALETTE_SUN_LIGHT (GColorYellow)
+#define BSKY_PALETTE_SKY_STROKE (GColorWhite)

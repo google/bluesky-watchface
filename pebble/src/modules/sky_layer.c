@@ -115,9 +115,9 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
             bsky_sky_layer_receive_data,
             layer);
 
-    const GColor color_sun_fill = GColorYellow;
+    const GColor color_sun_fill = BSKY_PALETTE_SUN_LIGHT;
     const GColor color_sun_stroke = BSKY_PALETTE_SUN_DARK;
-    const GColor color_sky_stroke = GColorWhite;
+    const GColor color_sky_stroke = BSKY_PALETTE_SKY_STROKE;
 
     const BSKY_SkyLayerData * const data = layer_get_data(layer);
     const GRect bounds = layer_get_bounds(layer);
@@ -134,7 +134,7 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
 
     // Update the 24 hour markers
     const int32_t midnight_angle = TRIG_MAX_ANGLE / 2;
-    const GRect sky_inset = bsky_rect_trim(sky_bounds, sky_diameter / 5);
+    const GRect sky_inset = bsky_rect_trim(sky_bounds, sky_diameter / 4);
     graphics_context_set_stroke_color(ctx, color_sky_stroke);
     graphics_context_set_antialiased(ctx, true);
     for (int32_t hour = 0; hour < 24; ++hour) {
@@ -169,13 +169,13 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
     graphics_context_set_stroke_width(ctx, 2);
     graphics_draw_circle(ctx, sun_center, sun_diameter/2);
 
-    // Update the Green Earth
+    // Put a nice big white circular cloud in the center
     const GPoint center = {
         .x=bounds.origin.x+bounds.size.w/2,
         .y=bounds.origin.y+bounds.size.h/2,
     };
-    graphics_context_set_fill_color(ctx, GColorInchworm);
-    graphics_fill_circle(ctx, center, sky_diameter/2-(sky_diameter/5));
+    graphics_context_set_fill_color(ctx, GColorWhite);
+    graphics_fill_circle(ctx, center, sky_diameter/2-(sky_diameter/4));
 
     // Draw the Skyline as solid blocks
     const GRect skyline_bounds = sky_bounds;
@@ -197,11 +197,15 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
         if (end_time <= data->unix_time+24*60*60) {
             continue;
         }
+        GColor color = GColorBlack;
+        if (start_time <= data->unix_time) {
+            color = color_sun_stroke;
+        }
+        graphics_context_set_fill_color(ctx, color);
         int32_t angle_start
             = epoch_angle + agenda[i] * TRIG_MAX_ANGLE / (24 * 6);
         int32_t angle_end
             = epoch_angle + agenda[i+1] * TRIG_MAX_ANGLE / (24 * 6);
-        graphics_context_set_fill_color(ctx, GColorBlack);
         graphics_fill_radial(
                 ctx,
                 skyline_bounds,
