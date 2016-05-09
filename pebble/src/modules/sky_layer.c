@@ -48,8 +48,8 @@ typedef struct {
 
     // Agenda data to be rendered as a skyline.
     //
-    const uint8_t * agenda;
-    int32_t agenda_length_bytes;
+    const int16_t * agenda;
+    int32_t agenda_length;
     int32_t agenda_epoch;
     struct tm agenda_epoch_wall_time;
 
@@ -91,8 +91,8 @@ static void bsky_sky_layer_receive_data(
         = args.agenda_changed
         || (args.agenda == NULL && data->agenda != NULL)
         || (args.agenda != NULL && data->agenda == NULL);
-    data->agenda = args.agenda;
-    data->agenda_length_bytes = args.agenda_length_bytes;
+    data->agenda = (int16_t*) args.agenda;
+    data->agenda_length = args.agenda_length_bytes/2;
     data->agenda_epoch = args.agenda_epoch;
     struct tm * epoch_wall_time = localtime(&data->agenda_epoch);
     data->agenda_epoch_wall_time = *epoch_wall_time;
@@ -180,43 +180,46 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
     // Draw the Skyline as solid blocks
     const GRect skyline_bounds = sky_bounds;
     const uint16_t inset_thickness = sky_diameter/8;
-    const uint8_t * agenda = data->agenda;
-    const int32_t epoch_angle = midnight_angle
-        + TRIG_MAX_ANGLE * data->agenda_epoch_wall_time.tm_hour / 24
-        + TRIG_MAX_ANGLE * data->agenda_epoch_wall_time.tm_min / (24*60);
+    const int16_t * agenda = data->agenda;
     time_t max_start_time = data->unix_time+24*60*60;
     time_t min_end_time = data->unix_time;
-    time_t soon = data->unix_time+1*60*60;
-    for (int32_t i=0; i<data->agenda_length_bytes; i+=2) {
+    for (int32_t i=0; i<data->agenda_length; i+=2) {
         if (agenda[i]==agenda[i+1]) {
+            // Skip zero-length events
             continue;
         }
-        time_t start_time = data->agenda_epoch + (agenda[i]*10*60);
-        if (start_time > max_start_time) {
+        time_t times [2];
+        for (int t=0; t<2; ++t) {
+            times[t] = data->agenda_epoch + agenda[i+t]*60;
+        }
+        if (times[0] > max_start_time) {
             APP_LOG(APP_LOG_LEVEL_DEBUG, "out of range");
             continue;
         }
-        time_t end_time = data->agenda_epoch + (agenda[i+1]*10*60);
-        if (end_time <= min_end_time) {
+        if (times[1] <= min_end_time) {
             APP_LOG(APP_LOG_LEVEL_DEBUG, "out of range");
             continue;
         }
         GColor color = GColorBlack;
-        if (start_time <= data->unix_time) {
+        if (times[0] <= data->unix_time) {
             color = color_sun_stroke;
         }
         graphics_context_set_fill_color(ctx, color);
-        int32_t angle_start
-            = epoch_angle + agenda[i] * TRIG_MAX_ANGLE / (24 * 6);
-        int32_t angle_end
-            = epoch_angle + agenda[i+1] * TRIG_MAX_ANGLE / (24 * 6);
+        int32_t angles [2];
+        for (int t=0; t<2; ++t) {
+            struct tm * wall_time = localtime(&times[t]);
+            angles[t]
+                = midnight_angle
+                + TRIG_MAX_ANGLE * wall_time->tm_hour / 24
+                + TRIG_MAX_ANGLE * wall_time->tm_min / (24 * 60);
+        }
         graphics_fill_radial(
                 ctx,
                 skyline_bounds,
                 GOvalScaleModeFitCircle,
                 inset_thickness,
-                angle_start,
-                angle_end);
+                angles[0],
+                angles[1]);
     }
 }
 

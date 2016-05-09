@@ -65,28 +65,28 @@ public class MainReceiver extends PebbleKit.PebbleDataReceiver
                 && data.contains(BLUESKY_PEBBLE_NOW_UNIX_TIME))
         {
             try {
+                // Gather values from incoming data
                 long agenda_need_seconds
                     = data.getInteger(BLUESKY_AGENDA_NEED_SECONDS_KEY);
                 long agenda_capacity_bytes
                     = data.getInteger(BLUESKY_AGENDA_CAPACITY_BYTES);
                 long pebble_now_unix_time
                     = data.getInteger(BLUESKY_PEBBLE_NOW_UNIX_TIME);
-                long unit_seconds = 10*60;
-                long start_unix_time
-                    = pebble_now_unix_time
-                    - (pebble_now_unix_time % unit_seconds);
+                // Convert to local data types and add fudge factor for end time
                 long extra_time_multiplier = 4;
                 long end_unix_time
-                    = pebble_now_unix_time + (agenda_need_seconds * extra_time_multiplier);
+                    = pebble_now_unix_time
+                    + (agenda_need_seconds * extra_time_multiplier);
                 Date start_date
-                    = new Date((long)start_unix_time*1000);
+                    = new Date((long)pebble_now_unix_time*1000L);
                 Date end_date
-                    = new Date((long)end_unix_time*1000);
+                    = new Date(end_unix_time*1000L);
+                // Send a response synchronously, which is fine because this
+                // code is not running on the UI thread anyway
                 sendAgenda(
                         context,
                         start_date,
                         end_date,
-                        unit_seconds,
                         (int) agenda_capacity_bytes);
             } catch(Exception e) {
                 Log.e(TAG, e.toString());
@@ -99,7 +99,6 @@ public class MainReceiver extends PebbleKit.PebbleDataReceiver
             Context context,
             Date start_date,
             Date end_date,
-            long unit_seconds,
             int agenda_capacity_bytes)
     {
         Log.d(TAG,
@@ -107,8 +106,6 @@ public class MainReceiver extends PebbleKit.PebbleDataReceiver
                 +String.valueOf(start_date)
                 +",end_date="
                 +String.valueOf(end_date)
-                +",unit_seconds="
-                +String.valueOf(unit_seconds)
                 +",agenda_capacity_bytes="
                 +String.valueOf(agenda_capacity_bytes));
         ContentResolver cr = context.getContentResolver();
@@ -117,59 +114,76 @@ public class MainReceiver extends PebbleKit.PebbleDataReceiver
         ContentUris.appendId(builder, start_date.getTime());
         ContentUris.appendId(builder, end_date.getTime());
 
+        // Include only events from calendars the user has selected as
+        // visible-by-default in the Calendar app.  Ignore all-day events just
+        // because there's no obviously meaningful way to display them in this
+        // system.
+        String filter
+            = Instances.VISIBLE + " = 1"
+            + " AND "
+            + Instances.ALL_DAY + " = 0";
+
+        // Sort events by their beginning time so that, if there are too many,
+        // the current and imminent events will get preference.
+        String sort_order = Instances.BEGIN + " ASC";
+
         Cursor cur = cr.query(
                 builder.build(),
                 INSTANCE_PROJECTION,
-                "visible = 1 AND allDay = 0",
+                filter,
                 null,
-                null);
+                sort_order);
 
+        // Make sure we're dealing with a multiple of 4 bytes to hold pairs of 2
+        // byte integers.
+        agenda_capacity_bytes -= agenda_capacity_bytes % 4;
         byte[] agenda = new byte[agenda_capacity_bytes];
-        int iagenda = 0;
 
-        long byte_time_epoch = start_date.getTime() / (unit_seconds * 1000);
-        while (cur.moveToNext()) {
+        // "short time" is time, in minutes, from an epoch.  This is not the
+        // Unix epoch, it is defined and kept in context with "short time"
+        // values so that they can be converted to absolute time later.  In this
+        // case, the epoch will be start_date.
+
+        int iagenda = 0;
+        while (iagenda<agenda_capacity_bytes && cur.moveToNext()) {
             long[] as_unix_milliseconds = new long[] {
                 cur.getLong(PROJECTION_BEGIN_INDEX),
                 cur.getLong(PROJECTION_END_INDEX),
             };
             Log.d(TAG,
-                    "begin="
-                    +String.valueOf(as_unix_milliseconds[0])
-                    +",end="
-                    +String.valueOf(as_unix_milliseconds[1]));
-            byte[] as_byte_time = new byte[2];
+                    "begin="+String.valueOf(as_unix_milliseconds[0])
+                    +",end="+String.valueOf(as_unix_milliseconds[1]));
+            short[] as_short_time = new short[2];
             boolean overflowed = false;
             for (int i=0; i<2; ++i) {
-                long byte_time
-                    = (as_unix_milliseconds[i] / (unit_seconds * 1000))
-                    - byte_time_epoch;
-                if (byte_time < 0 || 255 < byte_time) {
-                    overflowed = true;
-                } else {
-                    as_byte_time[i] = (byte) byte_time;
+                long short_time
+                    = (as_unix_milliseconds[i] - start_date.getTime())
+                    / (60*1000);
+                overflowed
+                    = short_time < Short.MIN_VALUE
+                    || Short.MAX_VALUE < short_time;
+                if (overflowed) {
+                    Log.d(TAG,
+                            "short_overflow="+String.valueOf(short_time));
+                    break;
                 }
+                as_short_time[i] = (short) short_time;
             }
             if (overflowed) {
-                Log.d(TAG,
-                        "overflowed begin="
-                        +String.valueOf(as_byte_time[0])
-                        +",end="
-                        +String.valueOf(as_byte_time[1]));
                 continue;
             }
             for (int i=0; i<2; ++i) {
-                Log.d(TAG,
-                        "accepted begin="
-                        +String.valueOf(as_byte_time[0])
-                        +",end="
-                        +String.valueOf(as_byte_time[1]));
-                agenda[iagenda++] = as_byte_time[i];
+                agenda[iagenda++] = (byte) (as_short_time[i] & 0x00ff);
+                agenda[iagenda++] = (byte) ((as_short_time[i] & 0xff00) >> 8);
             }
+            Log.d(TAG,
+                    "begin_short="+String.valueOf(as_short_time[0])
+                    +",end_short="+String.valueOf(as_short_time[1]));
         }
 
         Log.d(TAG,
-                "collected iagenda="+String.valueOf(iagenda));
+                "collected iagenda="+String.valueOf(iagenda)
+                +",n="+String.valueOf(iagenda/4));
 
         int version = (int) (new Date().getTime() % 0xffffffffL);
 
@@ -182,7 +196,7 @@ public class MainReceiver extends PebbleKit.PebbleDataReceiver
                 version);
         message.addInt32(
                 BLUESKY_AGENDA_EPOCH_KEY,
-                (int) (byte_time_epoch * unit_seconds));
+                (int) (start_date.getTime()/1000));
         PebbleKit.sendDataToPebble(context, BLUESKY_UUID, message);
     }
 
