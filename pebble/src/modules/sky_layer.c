@@ -207,7 +207,11 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
         graphics_context_set_fill_color(ctx, color);
         int32_t angles [2];
         for (int t=0; t<2; ++t) {
-            struct tm * wall_time = localtime(&times[t]);
+            time_t cropped
+                = times[t] < min_end_time ? min_end_time
+                : times[t] > max_start_time ? max_start_time
+                : times[t];
+            struct tm * wall_time = localtime(&cropped);
             angles[t]
                 = midnight_angle
                 + TRIG_MAX_ANGLE * wall_time->tm_hour / 24
