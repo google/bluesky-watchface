@@ -179,7 +179,10 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
 
     // Draw the Skyline as solid blocks
     const GRect skyline_bounds = sky_bounds;
-    const uint16_t inset_thickness = sky_diameter/8;
+    const uint16_t inset_min = sky_diameter/10;
+    const uint16_t inset_max = sky_diameter/2-(sky_diameter*3/13);
+    const uint16_t duration_min = 20*60;
+    const uint16_t duration_max = 90*60;
     const int16_t * agenda = data->agenda;
     time_t max_start_time = data->unix_time+24*60*60;
     time_t min_end_time = data->unix_time;
@@ -217,11 +220,21 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
                 + TRIG_MAX_ANGLE * wall_time->tm_hour / 24
                 + TRIG_MAX_ANGLE * wall_time->tm_min / (24 * 60);
         }
+        uint16_t duration_scale
+            = (times[1]-times[0]) < duration_min
+            ? 0
+            : (times[1]-times[0]) > duration_max
+            ? (duration_max-duration_min)
+            : (times[1]-times[0]) - duration_min;
+        uint16_t inset_offset
+            = duration_scale
+            * (inset_max-inset_min)
+            / (duration_max-duration_min);
         graphics_fill_radial(
                 ctx,
                 skyline_bounds,
                 GOvalScaleModeFitCircle,
-                inset_thickness,
+                inset_max - inset_offset,
                 angles[0],
                 angles[1]);
     }
