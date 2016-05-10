@@ -227,7 +227,7 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
     // Draw the Skyline as solid blocks
     const GRect skyline_bounds = sky_bounds;
     const uint16_t inset_min = sky_diameter/10;
-    const uint16_t inset_max = sky_diameter/2-(sky_diameter*3/13);
+    const uint16_t inset_max = sky_diameter/2-(sky_diameter*4/14);
     const uint16_t duration_min = 20*60;
     const uint16_t duration_max = 90*60;
     const int16_t * agenda = data->agenda;
