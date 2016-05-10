@@ -189,12 +189,23 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
         graphics_draw_line(ctx, p0, p1);
     }
 
+    // Put a nice big white circular cloud in the center
+    const GPoint center = {
+        .x=bounds.origin.x+bounds.size.w/2,
+        .y=bounds.origin.y+bounds.size.h/2,
+    };
+    graphics_context_set_fill_color(ctx, GColorWhite);
+    graphics_fill_circle(ctx, center, sky_diameter/2-(sky_diameter*3/13));
+
     // Update the Sun
     const int32_t sun_angle = midnight_angle
         + TRIG_MAX_ANGLE * data->wall_time.tm_hour / 24
         + TRIG_MAX_ANGLE * data->wall_time.tm_min / (24 * 60);
-    const int32_t sun_diameter = sky_diameter / 6;
-    const GRect sun_orbit = bsky_rect_trim(sky_bounds, sun_diameter/2+2);
+    const int32_t sun_diameter = sky_diameter / 7;
+    const GRect sun_orbit
+        = bsky_rect_trim(
+                sky_bounds,
+                (sky_diameter*3/13) - sun_diameter/2);
     const GPoint sun_center = gpoint_from_polar(
             sun_orbit,
             GOvalScaleModeFitCircle,
@@ -204,14 +215,6 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
     graphics_context_set_stroke_color(ctx, color_sun_stroke);
     graphics_context_set_stroke_width(ctx, 2);
     graphics_draw_circle(ctx, sun_center, sun_diameter/2);
-
-    // Put a nice big white circular cloud in the center
-    const GPoint center = {
-        .x=bounds.origin.x+bounds.size.w/2,
-        .y=bounds.origin.y+bounds.size.h/2,
-    };
-    graphics_context_set_fill_color(ctx, GColorWhite);
-    graphics_fill_circle(ctx, center, sky_diameter/2-(sky_diameter*3/13));
 
     // Draw the Skyline as solid blocks
     const GRect skyline_bounds = sky_bounds;
