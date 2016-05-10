@@ -209,11 +209,15 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
         }
         graphics_context_set_fill_color(ctx, color);
         int32_t angles [2];
+        bool cropped_highlight = false;
         for (int t=0; t<2; ++t) {
             time_t cropped
                 = times[t] < min_end_time ? min_end_time
                 : times[t] > max_start_time ? max_start_time
                 : times[t];
+            if (t==0 && cropped!=times[t]) {
+                cropped_highlight = true;
+            }
             struct tm * wall_time = localtime(&cropped);
             angles[t]
                 = midnight_angle
@@ -237,6 +241,32 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
                 inset_max - inset_offset,
                 angles[0],
                 angles[1]);
+        GColor highlight;
+        if (angles[1]-angles[0] < TRIG_MAX_ANGLE/360) {
+            // Towers too thin to show contrast against the blue sky
+            // should keep a dark color even when highlighted.
+            highlight = GColorDarkGray;
+        } else if (inset_offset > (inset_max+inset_min)*2/5) {
+            // Tall towers tend to be made of more grey/blue material so
+            // highlight them that way.
+            highlight = GColorLiberty;
+        } else {
+            // Otherwise let's say it's made of traditional red-orange
+            // brick, and the highlight can be wider.
+            highlight = GColorRoseVale;
+        }
+        if (!cropped_highlight) {
+            int32_t highlight_start_angle = TRIG_MAX_ANGLE*4/(360*3);
+            int32_t highlight_end_angle = (angles[1]-angles[0])*1/3;
+            graphics_context_set_fill_color(ctx, highlight);
+            graphics_fill_radial(
+                    ctx,
+                    skyline_bounds,
+                    GOvalScaleModeFitCircle,
+                    inset_max - inset_offset - 1,
+                    angles[0]+highlight_start_angle,
+                    angles[0]+highlight_end_angle);
+        }
     }
 }
 
