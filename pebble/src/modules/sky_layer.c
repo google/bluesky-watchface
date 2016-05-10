@@ -246,11 +246,7 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
             APP_LOG(APP_LOG_LEVEL_DEBUG, "out of range");
             continue;
         }
-        GColor color = GColorBlack;
-        if (times[0] <= data->unix_time) {
-            color = color_sun_stroke;
-        }
-        graphics_context_set_fill_color(ctx, color);
+        graphics_context_set_fill_color(ctx, GColorBlack);
         int32_t angles [2];
         bool cropped_highlight = false;
         for (int t=0; t<2; ++t) {
