@@ -52,6 +52,7 @@ typedef struct {
     int32_t agenda_length;
     int32_t agenda_epoch;
     struct tm agenda_epoch_wall_time;
+    int16_t * agenda_height_index;
 
 } BSKY_SkyLayerData;
 
@@ -69,6 +70,18 @@ static GRect bsky_rect_trim (const GRect rect, const int8_t trim) {
         },
     };
     return result;
+}
+
+static const int16_t * cmp_agenda_height_index_agenda;
+static int cmp_agenda_height_index(const void * a, const void * b) {
+    uint16_t index [2] = { *((uint16_t*)a), *((uint16_t*)b) };
+    int32_t duration[2];
+    for (int i=0; i<2; ++i) {
+        int32_t start = cmp_agenda_height_index_agenda[index[i]];
+        int32_t end = cmp_agenda_height_index_agenda[index[i]+1];
+        duration[i] = end-start;
+    }
+    return duration[0]-duration[1];
 }
 
 // Callback for bsky_data_set_receiver.
@@ -96,6 +109,29 @@ static void bsky_sky_layer_receive_data(
     data->agenda_epoch = args.agenda_epoch;
     struct tm * epoch_wall_time = localtime(&data->agenda_epoch);
     data->agenda_epoch_wall_time = *epoch_wall_time;
+    if (args.agenda_changed) {
+        if (data->agenda_height_index) {
+            free(data->agenda_height_index);
+        }
+        data->agenda_height_index
+            = calloc(data->agenda_length/2,
+                     sizeof(data->agenda_height_index[0]));
+        if (!data->agenda_height_index) {
+            APP_LOG(APP_LOG_LEVEL_ERROR,
+                    "bsky_sky_layer_receive_data:"
+                    " calloc failed for agenda height index");
+        } else {
+            for (int16_t i=0; i<data->agenda_length/2; ++i) {
+                data->agenda_height_index[i] = i*2;
+            }
+            cmp_agenda_height_index_agenda = data->agenda;
+            qsort (data->agenda_height_index,
+                    data->agenda_length/2,
+                    sizeof(data->agenda_height_index[0]),
+                    cmp_agenda_height_index);
+            cmp_agenda_height_index_agenda = NULL;
+        }
+    }
     if (mark_dirty) {
         layer_mark_dirty((Layer*)context);
     }
@@ -186,14 +222,18 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
     const int16_t * agenda = data->agenda;
     time_t max_start_time = data->unix_time+24*60*60;
     time_t min_end_time = data->unix_time;
-    for (int32_t i=0; i<data->agenda_length; i+=2) {
-        if (agenda[i]==agenda[i+1]) {
+    for (int32_t index=0; index<data->agenda_length/2; ++index) {
+        int32_t iagenda
+            = data->agenda_height_index
+            ? data->agenda_height_index[index]
+            : index*2;
+        if (agenda[iagenda]==agenda[iagenda+1]) {
             // Skip zero-length events
             continue;
         }
         time_t times [2];
         for (int t=0; t<2; ++t) {
-            times[t] = data->agenda_epoch + agenda[i+t]*60;
+            times[t] = data->agenda_epoch + agenda[iagenda+t]*60;
         }
         if (times[0] > max_start_time) {
             APP_LOG(APP_LOG_LEVEL_DEBUG, "out of range");
