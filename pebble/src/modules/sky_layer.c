@@ -210,11 +210,19 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
             sun_orbit,
             GOvalScaleModeFitCircle,
             sun_angle);
-    graphics_context_set_fill_color(ctx, color_sun_fill);
-    graphics_fill_circle(ctx, sun_center, sun_diameter/2);
+    const GPoint sun_beam = gpoint_from_polar(
+            sky_bounds,
+            GOvalScaleModeFitCircle,
+            sun_angle);
     graphics_context_set_stroke_color(ctx, color_sun_stroke);
     graphics_context_set_stroke_width(ctx, 2);
+    graphics_context_set_fill_color(ctx, color_sun_fill);
+    graphics_draw_line(ctx, sun_center, sun_beam);
+    graphics_fill_circle(ctx, sun_center, sun_diameter/2);
     graphics_draw_circle(ctx, sun_center, sun_diameter/2);
+    graphics_context_set_stroke_width(ctx, 1);
+    graphics_context_set_stroke_color(ctx, color_sun_fill);
+    graphics_draw_line(ctx, sun_center, sun_beam);
 
     // Draw the Skyline as solid blocks
     const GRect skyline_bounds = sky_bounds;
