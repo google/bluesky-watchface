@@ -117,11 +117,13 @@ public class MainReceiver extends PebbleKit.PebbleDataReceiver
         // Include only events from calendars the user has selected as
         // visible-by-default in the Calendar app.  Ignore all-day events just
         // because there's no obviously meaningful way to display them in this
-        // system.
+        // system.  Finally, also ignore canceled events.
         String filter
             = Instances.VISIBLE + " = 1"
             + " AND "
-            + Instances.ALL_DAY + " = 0";
+            + Instances.ALL_DAY + " = 0"
+            + " AND "
+            + Instances.STATUS + " <> " + String.valueOf(Instances.STATUS_CANCELED);
 
         // Sort events by their beginning time so that, if there are too many,
         // the current and imminent events will get preference.
