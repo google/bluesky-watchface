@@ -70,13 +70,6 @@ public class CalendarBridge
         // the current and imminent events will get preference.
         String sort_order = Instances.BEGIN + " ASC";
 
-        Cursor cursor = cr.query(
-                builder.build(),
-                INSTANCE_PROJECTION,
-                filter,
-                null,
-                sort_order);
-
         // Make sure we're dealing with a multiple of 4 bytes to hold pairs of 2
         // byte integers.
         agenda_capacity_bytes -= agenda_capacity_bytes % 4;
@@ -87,41 +80,52 @@ public class CalendarBridge
         // values so that they can be converted to absolute time later.  In this
         // case, the epoch will be start_date.
 
+        Cursor cursor = cr.query(
+                builder.build(),
+                INSTANCE_PROJECTION,
+                filter,
+                null,
+                sort_order);
+
         int iagenda = 0;
-        while (iagenda<agenda_capacity_bytes && cursor.moveToNext()) {
-            long[] as_unix_milliseconds = new long[] {
-                cursor.getLong(PROJECTION_BEGIN_INDEX),
-                cursor.getLong(PROJECTION_END_INDEX),
-            };
-            Log.d(TAG,
-                    "begin="+String.valueOf(as_unix_milliseconds[0])
-                    +",end="+String.valueOf(as_unix_milliseconds[1]));
-            short[] as_short_time = new short[2];
-            boolean overflowed = false;
-            for (int i=0; i<2; ++i) {
-                long short_time
-                    = (as_unix_milliseconds[i] - start_date.getTime())
-                    / (60*1000);
-                overflowed
-                    = short_time < Short.MIN_VALUE
-                    || Short.MAX_VALUE < short_time;
-                if (overflowed) {
-                    Log.d(TAG,
-                            "short_overflow="+String.valueOf(short_time));
-                    break;
+        try {
+            while (iagenda<agenda_capacity_bytes && cursor.moveToNext()) {
+                long[] as_unix_milliseconds = new long[] {
+                    cursor.getLong(PROJECTION_BEGIN_INDEX),
+                    cursor.getLong(PROJECTION_END_INDEX),
+                };
+                Log.d(TAG,
+                        "begin="+String.valueOf(as_unix_milliseconds[0])
+                        +",end="+String.valueOf(as_unix_milliseconds[1]));
+                short[] as_short_time = new short[2];
+                boolean overflowed = false;
+                for (int i=0; i<2; ++i) {
+                    long short_time
+                        = (as_unix_milliseconds[i] - start_date.getTime())
+                        / (60*1000);
+                    overflowed
+                        = short_time < Short.MIN_VALUE
+                        || Short.MAX_VALUE < short_time;
+                    if (overflowed) {
+                        Log.d(TAG,
+                                "short_overflow="+String.valueOf(short_time));
+                        break;
+                    }
+                    as_short_time[i] = (short) short_time;
                 }
-                as_short_time[i] = (short) short_time;
+                if (overflowed) {
+                    continue;
+                }
+                for (int i=0; i<2; ++i) {
+                    agenda[iagenda++] = (byte) (as_short_time[i] & 0x00ff);
+                    agenda[iagenda++] = (byte) ((as_short_time[i] & 0xff00) >> 8);
+                }
+                Log.d(TAG,
+                        "begin_short="+String.valueOf(as_short_time[0])
+                        +",end_short="+String.valueOf(as_short_time[1]));
             }
-            if (overflowed) {
-                continue;
-            }
-            for (int i=0; i<2; ++i) {
-                agenda[iagenda++] = (byte) (as_short_time[i] & 0x00ff);
-                agenda[iagenda++] = (byte) ((as_short_time[i] & 0xff00) >> 8);
-            }
-            Log.d(TAG,
-                    "begin_short="+String.valueOf(as_short_time[0])
-                    +",end_short="+String.valueOf(as_short_time[1]));
+        } finally {
+            cursor.close();
         }
 
         Log.d(TAG,
