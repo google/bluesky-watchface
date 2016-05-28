@@ -37,7 +37,7 @@ void bsky_data_deinit(void);
 //
 void bsky_data_update(void);
 
-// Start and end times for an event as seconds relative to a custom epoch.
+// Start and end times for an event as minutes relative to a custom epoch.
 //
 struct BSKY_DataEvent {
     int16_t rel_start;
