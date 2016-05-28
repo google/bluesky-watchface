@@ -18,10 +18,6 @@
 #include "data.h"
 #include "agenda.h"
 
-static struct BSKY_Agenda s_agenda;
-
-const struct BSKY_Agenda * bsky_agenda_read () { return &s_agenda; }
-
 static void bsky_agenda_notify ();
 
 static const struct BSKY_DataEvent * cmp_agenda_height_index_agenda;
@@ -52,7 +48,7 @@ static void bsky_agenda_receive_data(
             args.agenda_length,
             (args.agenda_changed ? "true" : "false"),
             args.agenda_epoch);
-    struct BSKY_Agenda * data = &s_agenda;
+    struct BSKY_Agenda * data = context;
     bool changed
         = args.agenda_changed
         || (args.agenda == NULL && data->agenda != NULL)
@@ -129,6 +125,10 @@ void bsky_agenda_unsubscribe (
         }
     }
 }
+
+static struct BSKY_Agenda s_agenda;
+
+const struct BSKY_Agenda * bsky_agenda_read () { return &s_agenda; }
 
 void bsky_agenda_init () {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_agenda_init()");
