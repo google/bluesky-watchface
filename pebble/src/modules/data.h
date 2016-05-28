@@ -37,9 +37,16 @@ void bsky_data_deinit(void);
 //
 void bsky_data_update(void);
 
+// Start and end times for an event as seconds relative to a custom epoch.
+//
+struct BSKY_data_event {
+    int16_t rel_start;
+    int16_t rel_end;
+};
+
 struct BSKY_data_receiver_args {
-    const uint8_t * agenda;
-    int32_t agenda_length_bytes;
+    const struct BSKY_data_event * agenda;
+    int32_t agenda_length;
     bool agenda_changed;
     int32_t agenda_epoch;
 };
