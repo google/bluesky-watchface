@@ -212,6 +212,8 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
                 + TRIG_MAX_ANGLE * wall_times[t].tm_hour / 24
                 + TRIG_MAX_ANGLE * wall_times[t].tm_min / (24 * 60);
         }
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "event start=%s", bsky_debug_fmt_time(times[0]));
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "event end=%s", bsky_debug_fmt_time(times[1]));
         uint16_t duration_scale
             = (times[1]-times[0]) < duration_min
             ? 0
