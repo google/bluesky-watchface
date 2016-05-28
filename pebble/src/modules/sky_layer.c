@@ -16,6 +16,7 @@
 #include <pebble.h>
 
 #include "data.h"
+#include "agenda.h"
 #include "palette.h"
 #include "sky_layer.h"
 
@@ -46,14 +47,6 @@ typedef struct {
     //
     struct tm wall_time;
 
-    // Agenda data to be rendered as a skyline.
-    //
-    const struct BSKY_DataEvent * agenda;
-    int32_t agenda_length;
-    int32_t agenda_epoch;
-    struct tm agenda_epoch_wall_time;
-    int16_t * agenda_height_index;
-
 } BSKY_SkyLayerData;
 
 // Make a smaller rect by trimming the edges of a larger one.
@@ -72,69 +65,12 @@ static GRect bsky_rect_trim (const GRect rect, const int8_t trim) {
     return result;
 }
 
-static const struct BSKY_DataEvent * cmp_agenda_height_index_agenda;
-static int cmp_agenda_height_index(const void * a, const void * b) {
-    uint16_t index [2] = { *((uint16_t*)a), *((uint16_t*)b) };
-    int32_t duration[2];
-    for (int i=0; i<2; ++i) {
-        int32_t start = cmp_agenda_height_index_agenda[index[i]].rel_start;
-        int32_t end = cmp_agenda_height_index_agenda[index[i]].rel_end;
-        duration[i] = end-start;
-    }
-    return duration[0]-duration[1];
-}
-
-// Callback for bsky_data_set_receiver.
+// Matches BSKY_AgendaReceiver.
 //
-static void bsky_sky_layer_receive_data(
-        void * context,
-        struct BSKY_DataReceiverArgs args) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG,
-            "bsky_sky_layer_receive_data:"
-            " agenda=%p"
-            ",agenda_length=%ld"
-            ",agenda_changed=%s"
-            ",agenda_epoch=%ld",
-            args.agenda,
-            args.agenda_length,
-            (args.agenda_changed ? "true" : "false"),
-            args.agenda_epoch);
-    BSKY_SkyLayerData * data = layer_get_data((Layer*)context);
-    bool mark_dirty
-        = args.agenda_changed
-        || (args.agenda == NULL && data->agenda != NULL)
-        || (args.agenda != NULL && data->agenda == NULL);
-    data->agenda = args.agenda;
-    data->agenda_length = args.agenda_length;
-    data->agenda_epoch = args.agenda_epoch;
-    struct tm * epoch_wall_time = localtime(&data->agenda_epoch);
-    data->agenda_epoch_wall_time = *epoch_wall_time;
-    if (args.agenda_changed) {
-        if (data->agenda_height_index) {
-            free(data->agenda_height_index);
-        }
-        data->agenda_height_index
-            = calloc(data->agenda_length,
-                     sizeof(data->agenda_height_index[0]));
-        if (!data->agenda_height_index) {
-            APP_LOG(APP_LOG_LEVEL_ERROR,
-                    "bsky_sky_layer_receive_data:"
-                    " calloc failed for agenda height index");
-        } else {
-            for (int16_t i=0; i<data->agenda_length; ++i) {
-                data->agenda_height_index[i] = i*2;
-            }
-            cmp_agenda_height_index_agenda = data->agenda;
-            qsort (data->agenda_height_index,
-                    data->agenda_length,
-                    sizeof(data->agenda_height_index[0]),
-                    cmp_agenda_height_index);
-            cmp_agenda_height_index_agenda = NULL;
-        }
-    }
-    if (mark_dirty) {
-        layer_mark_dirty((Layer*)context);
-    }
+static void bsky_sky_layer_agenda_update(
+        void * context) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_sky_layer_agenda_update");
+    layer_mark_dirty((Layer*)context);
 }
 
 static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
@@ -142,14 +78,6 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
             "bsky_sky_layer_update(%p, %p)",
             layer,
             ctx);
-
-    // It'd make sense to subscribe earlier, but then we might get our
-    // first callback before we're ready to process it, and then we'd
-    // have to hold on to it somehow... but that's what the data module
-    // is for.  Therefore, don't subscribe until we're good and ready!
-    bsky_data_set_receiver(
-            bsky_sky_layer_receive_data,
-            layer);
 
     const GColor color_sun_fill = BSKY_PALETTE_SUN_LIGHT;
     const GColor color_sun_stroke = BSKY_PALETTE_SUN_DARK;
@@ -230,21 +158,22 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
     const uint16_t inset_max = sky_diameter/2-(sky_diameter*4/14);
     const uint16_t duration_min = 20*60;
     const uint16_t duration_max = 90*60;
-    const struct BSKY_DataEvent * agenda = data->agenda;
+    const struct BSKY_Agenda * agenda_ctx = bsky_agenda_read();
+    const struct BSKY_DataEvent * agenda = agenda_ctx->agenda;
     time_t max_start_time = data->unix_time+24*60*60;
     time_t min_end_time = data->unix_time;
-    for (int32_t index=0; index<data->agenda_length; ++index) {
+    for (int32_t index=0; index<agenda_ctx->agenda_length; ++index) {
         int32_t iagenda
-            = data->agenda_height_index
-            ? data->agenda_height_index[index]
+            = agenda_ctx->agenda_height_index
+            ? agenda_ctx->agenda_height_index[index]
             : index;
         if (agenda[iagenda].rel_start==agenda[iagenda].rel_end) {
             // Skip zero-length events
             continue;
         }
         time_t times [2];
-        times[0] = data->agenda_epoch + agenda[iagenda].rel_start*60;
-        times[1] = data->agenda_epoch + agenda[iagenda].rel_end*60;
+        times[0] = agenda_ctx->agenda_epoch + agenda[iagenda].rel_start*60;
+        times[1] = agenda_ctx->agenda_epoch + agenda[iagenda].rel_end*60;
         if (times[0] > max_start_time) {
             APP_LOG(APP_LOG_LEVEL_DEBUG, "out of range");
             continue;
@@ -349,10 +278,16 @@ BSKY_SkyLayer * bsky_sky_layer_create(GRect frame) {
             sky_layer = NULL;
         } else {
             sky_layer->data = layer_get_data(sky_layer->layer);
-            sky_layer->data->agenda = NULL;
             layer_set_update_proc(
                     sky_layer->layer,
                     bsky_sky_layer_update);
+            if (!bsky_agenda_subscribe(
+                    bsky_sky_layer_agenda_update,
+                    sky_layer->layer)) {
+                APP_LOG(APP_LOG_LEVEL_ERROR,
+                        "bsky_sky_layer_create:"
+                        " failed to subscribe to agenda updates");
+            }
         }
     }
     return sky_layer;
@@ -362,6 +297,9 @@ void bsky_sky_layer_destroy(BSKY_SkyLayer *sky_layer) {
     APP_LOG(APP_LOG_LEVEL_DEBUG,
             "bsky_sky_layer_destroy(%p)",
             sky_layer);
+    bsky_agenda_unsubscribe(
+            bsky_sky_layer_agenda_update,
+            sky_layer->layer);
     layer_destroy(sky_layer->layer);
     sky_layer->layer = NULL;
     sky_layer->data = NULL;
