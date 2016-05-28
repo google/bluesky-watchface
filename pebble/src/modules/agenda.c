@@ -58,6 +58,12 @@ static void bsky_agenda_receive_data(
     data->agenda_epoch = args.agenda_epoch;
     struct tm * epoch_wall_time = localtime(&data->agenda_epoch);
     data->agenda_epoch_wall_time = *epoch_wall_time;
+    if (data->agenda_epoch_wall_time.tm_sec) {
+        // TODO: fix this in the remote code by always rounding epoch down to
+        // the minute.
+        data->agenda_epoch += (60 - data->agenda_epoch_wall_time.tm_sec);
+        data->agenda_epoch_wall_time.tm_sec = 0;
+    }
     if (args.agenda_changed) {
         if (data->agenda_height_index) {
             free(data->agenda_height_index);
