@@ -77,7 +77,7 @@ static void bsky_agenda_receive_data(
                     " calloc failed for agenda height index");
         } else {
             for (int16_t i=0; i<data->agenda_length; ++i) {
-                data->agenda_height_index[i] = i*2;
+                data->agenda_height_index[i] = i;
             }
             cmp_agenda_height_index_agenda = data->agenda;
             qsort (data->agenda_height_index,
