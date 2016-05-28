@@ -48,7 +48,7 @@ typedef struct {
 
     // Agenda data to be rendered as a skyline.
     //
-    const struct BSKY_data_event * agenda;
+    const struct BSKY_DataEvent * agenda;
     int32_t agenda_length;
     int32_t agenda_epoch;
     struct tm agenda_epoch_wall_time;
@@ -72,7 +72,7 @@ static GRect bsky_rect_trim (const GRect rect, const int8_t trim) {
     return result;
 }
 
-static const struct BSKY_data_event * cmp_agenda_height_index_agenda;
+static const struct BSKY_DataEvent * cmp_agenda_height_index_agenda;
 static int cmp_agenda_height_index(const void * a, const void * b) {
     uint16_t index [2] = { *((uint16_t*)a), *((uint16_t*)b) };
     int32_t duration[2];
@@ -88,7 +88,7 @@ static int cmp_agenda_height_index(const void * a, const void * b) {
 //
 static void bsky_sky_layer_receive_data(
         void * context,
-        struct BSKY_data_receiver_args args) {
+        struct BSKY_DataReceiverArgs args) {
     APP_LOG(APP_LOG_LEVEL_DEBUG,
             "bsky_sky_layer_receive_data:"
             " agenda=%p"
@@ -230,7 +230,7 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
     const uint16_t inset_max = sky_diameter/2-(sky_diameter*4/14);
     const uint16_t duration_min = 20*60;
     const uint16_t duration_max = 90*60;
-    const struct BSKY_data_event * agenda = data->agenda;
+    const struct BSKY_DataEvent * agenda = data->agenda;
     time_t max_start_time = data->unix_time+24*60*60;
     time_t min_end_time = data->unix_time;
     for (int32_t index=0; index<data->agenda_length; ++index) {

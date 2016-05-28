@@ -17,7 +17,7 @@
 
 #include "data.h"
 
-static BSKY_data_receiver s_receiver;
+static BSKY_DataReceiver s_receiver;
 static void *s_receiver_context;
 static int32_t s_agenda_need_seconds;
 static int32_t s_agenda_capacity_bytes;
@@ -52,8 +52,8 @@ static void bsky_data_call_receiver(bool changed) {
                 "bsky_data_call_receiver: init failed or no receiver");
         return;
     }
-    struct BSKY_data_receiver_args args = {
-        .agenda = (struct BSKY_data_event*) s_agenda,
+    struct BSKY_DataReceiverArgs args = {
+        .agenda = (struct BSKY_DataEvent*) s_agenda,
         .agenda_length = (s_agenda_version
                 ? (s_agenda_length_bytes / sizeof(*args.agenda))
                 : 0),
@@ -64,7 +64,7 @@ static void bsky_data_call_receiver(bool changed) {
 }
 
 void bsky_data_set_receiver (
-        BSKY_data_receiver receiver,
+        BSKY_DataReceiver receiver,
         void * context) {
     if (s_receiver == receiver && s_receiver_context == context) {
         return;

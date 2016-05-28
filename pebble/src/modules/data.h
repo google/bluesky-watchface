@@ -39,21 +39,21 @@ void bsky_data_update(void);
 
 // Start and end times for an event as seconds relative to a custom epoch.
 //
-struct BSKY_data_event {
+struct BSKY_DataEvent {
     int16_t rel_start;
     int16_t rel_end;
 };
 
-struct BSKY_data_receiver_args {
-    const struct BSKY_data_event * agenda;
+struct BSKY_DataReceiverArgs {
+    const struct BSKY_DataEvent * agenda;
     int32_t agenda_length;
     bool agenda_changed;
     int32_t agenda_epoch;
 };
 
-typedef void (*BSKY_data_receiver) (
+typedef void (*BSKY_DataReceiver) (
         void * context,
-        struct BSKY_data_receiver_args args);
+        struct BSKY_DataReceiverArgs args);
 
 // Set the receiver for incoming data
 //
@@ -62,5 +62,5 @@ typedef void (*BSKY_data_receiver) (
 // implementation may decide not to request updates in this case.
 //
 void bsky_data_set_receiver (
-        BSKY_data_receiver receiver,
+        BSKY_DataReceiver receiver,
         void * context);
