@@ -73,6 +73,18 @@ static void bsky_sky_layer_agenda_update(
     layer_mark_dirty((Layer*)context);
 }
 
+static const char * bsky_debug_fmt_time (time_t t) {
+    const struct tm *local_now = localtime(&t);
+    static char s_time_buffer[20];
+    if (0 == strftime(s_time_buffer,
+                sizeof(s_time_buffer),
+                "%F %T",
+                local_now)) {
+        return "(error while formatting time)";
+    }
+    return s_time_buffer;
+}
+
 static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
     APP_LOG(APP_LOG_LEVEL_DEBUG,
             "bsky_sky_layer_update(%p, %p)",
@@ -175,11 +187,11 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
         times[0] = agenda_ctx->agenda_epoch + agenda[iagenda].rel_start*60;
         times[1] = agenda_ctx->agenda_epoch + agenda[iagenda].rel_end*60;
         if (times[0] > max_start_time) {
-            APP_LOG(APP_LOG_LEVEL_DEBUG, "out of range");
+            APP_LOG(APP_LOG_LEVEL_DEBUG, "starts too late at %s", bsky_debug_fmt_time(times[0]));
             continue;
         }
         if (times[1] <= min_end_time) {
-            APP_LOG(APP_LOG_LEVEL_DEBUG, "out of range");
+            APP_LOG(APP_LOG_LEVEL_DEBUG, "ends too early at %s", bsky_debug_fmt_time(times[1]));
             continue;
         }
         graphics_context_set_fill_color(ctx, GColorBlack);
