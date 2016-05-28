@@ -179,8 +179,8 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
             = agenda_ctx->agenda_height_index
             ? agenda_ctx->agenda_height_index[index]
             : index;
-        if (agenda[iagenda].rel_start==agenda[iagenda].rel_end) {
-            // Skip zero-length events
+        if (agenda[iagenda].rel_start>=agenda[iagenda].rel_end) {
+            // Skip zero-length and negative-length events
             continue;
         }
         time_t times [2];
