@@ -183,9 +183,10 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
             // Skip zero-length and negative-length events
             continue;
         }
-        time_t times [2];
-        times[0] = agenda_ctx->agenda_epoch + agenda[iagenda].rel_start*60;
-        times[1] = agenda_ctx->agenda_epoch + agenda[iagenda].rel_end*60;
+        const time_t times [2] = {
+            agenda_ctx->agenda_epoch + agenda[iagenda].rel_start*60,
+            agenda_ctx->agenda_epoch + agenda[iagenda].rel_end*60,
+        };
         if (times[0] > max_start_time) {
             APP_LOG(APP_LOG_LEVEL_DEBUG, "starts too late at %s", bsky_debug_fmt_time(times[0]));
             continue;
