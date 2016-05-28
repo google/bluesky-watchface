@@ -195,6 +195,7 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
             continue;
         }
         graphics_context_set_fill_color(ctx, GColorBlack);
+        struct tm wall_times [2];
         int32_t angles [2];
         bool cropped_highlight = false;
         for (int t=0; t<2; ++t) {
@@ -205,11 +206,11 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
             if (t==0 && cropped!=times[t]) {
                 cropped_highlight = true;
             }
-            struct tm * wall_time = localtime(&cropped);
+            wall_times[t] = *localtime(&cropped);
             angles[t]
                 = midnight_angle
-                + TRIG_MAX_ANGLE * wall_time->tm_hour / 24
-                + TRIG_MAX_ANGLE * wall_time->tm_min / (24 * 60);
+                + TRIG_MAX_ANGLE * wall_times[t].tm_hour / 24
+                + TRIG_MAX_ANGLE * wall_times[t].tm_min / (24 * 60);
         }
         uint16_t duration_scale
             = (times[1]-times[0]) < duration_min
