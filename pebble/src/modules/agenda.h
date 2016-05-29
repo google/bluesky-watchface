@@ -16,11 +16,11 @@
 #pragma once
 
 struct BSKY_Agenda {
-    const struct BSKY_DataEvent * agenda;
-    int32_t agenda_length;
-    int32_t agenda_epoch;
-    struct tm agenda_epoch_wall_time;
-    int16_t * agenda_height_index;
+    const struct BSKY_DataEvent * events;
+    int32_t events_length;
+    int32_t epoch;
+    struct tm epoch_wall_time;
+    int16_t * height_index;
 };
 
 void bsky_agenda_init ();

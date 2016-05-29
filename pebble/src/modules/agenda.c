@@ -51,38 +51,38 @@ static void bsky_agenda_receive_data(
     struct BSKY_Agenda * data = context;
     bool changed
         = args.agenda_changed
-        || (args.agenda == NULL && data->agenda != NULL)
-        || (args.agenda != NULL && data->agenda == NULL);
-    data->agenda = args.agenda;
-    data->agenda_length = args.agenda_length;
-    data->agenda_epoch = args.agenda_epoch;
-    struct tm * epoch_wall_time = localtime(&data->agenda_epoch);
-    data->agenda_epoch_wall_time = *epoch_wall_time;
-    if (data->agenda_epoch_wall_time.tm_sec) {
+        || (args.agenda == NULL && data->events != NULL)
+        || (args.agenda != NULL && data->events == NULL);
+    data->events = args.agenda;
+    data->events_length = args.agenda_length;
+    data->epoch = args.agenda_epoch;
+    struct tm * epoch_wall_time = localtime(&data->epoch);
+    data->epoch_wall_time = *epoch_wall_time;
+    if (data->epoch_wall_time.tm_sec) {
         // TODO: fix this in the remote code by always rounding epoch down to
         // the minute.
-        data->agenda_epoch += (60 - data->agenda_epoch_wall_time.tm_sec);
-        data->agenda_epoch_wall_time.tm_sec = 0;
+        data->epoch += (60 - data->epoch_wall_time.tm_sec);
+        data->epoch_wall_time.tm_sec = 0;
     }
     if (args.agenda_changed) {
-        if (data->agenda_height_index) {
-            free(data->agenda_height_index);
+        if (data->height_index) {
+            free(data->height_index);
         }
-        data->agenda_height_index
-            = calloc(data->agenda_length,
-                     sizeof(data->agenda_height_index[0]));
-        if (!data->agenda_height_index) {
+        data->height_index
+            = calloc(data->events_length,
+                     sizeof(data->height_index[0]));
+        if (!data->height_index) {
             APP_LOG(APP_LOG_LEVEL_ERROR,
                     "bsky_agenda_receive_data:"
                     " calloc failed for agenda height index");
         } else {
-            for (int16_t i=0; i<data->agenda_length; ++i) {
-                data->agenda_height_index[i] = i;
+            for (int16_t i=0; i<data->events_length; ++i) {
+                data->height_index[i] = i;
             }
-            cmp_agenda_height_index_agenda = data->agenda;
-            qsort (data->agenda_height_index,
-                    data->agenda_length,
-                    sizeof(data->agenda_height_index[0]),
+            cmp_agenda_height_index_agenda = data->events;
+            qsort (data->height_index,
+                    data->events_length,
+                    sizeof(data->height_index[0]),
                     cmp_agenda_height_index);
             cmp_agenda_height_index_agenda = NULL;
         }
@@ -154,8 +154,8 @@ void bsky_agenda_deinit () {
         s_receivers[i].context = NULL;
     }
     bsky_data_set_receiver(NULL, NULL);
-    if (s_agenda.agenda_height_index) {
-        free (s_agenda.agenda_height_index);
-        s_agenda.agenda_height_index = NULL;
+    if (s_agenda.height_index) {
+        free (s_agenda.height_index);
+        s_agenda.height_index = NULL;
     }
 }

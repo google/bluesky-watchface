@@ -170,22 +170,22 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
     const uint16_t inset_max = sky_diameter/2-(sky_diameter*4/14);
     const uint16_t duration_min = 20*60;
     const uint16_t duration_max = 90*60;
-    const struct BSKY_Agenda * agenda_ctx = bsky_agenda_read();
-    const struct BSKY_DataEvent * agenda = agenda_ctx->agenda;
+    const struct BSKY_Agenda * agenda = bsky_agenda_read();
+    const struct BSKY_DataEvent * events = agenda->events;
     time_t max_start_time = data->unix_time+24*60*60;
     time_t min_end_time = data->unix_time;
-    for (int32_t index=0; index<agenda_ctx->agenda_length; ++index) {
-        int32_t iagenda
-            = agenda_ctx->agenda_height_index
-            ? agenda_ctx->agenda_height_index[index]
+    for (int32_t index=0; index<agenda->events_length; ++index) {
+        int32_t ievent
+            = agenda->height_index
+            ? agenda->height_index[index]
             : index;
-        if (agenda[iagenda].rel_start>=agenda[iagenda].rel_end) {
+        if (events[ievent].rel_start>=events[ievent].rel_end) {
             // Skip zero-length and negative-length events
             continue;
         }
         const time_t times [2] = {
-            agenda_ctx->agenda_epoch + agenda[iagenda].rel_start*60,
-            agenda_ctx->agenda_epoch + agenda[iagenda].rel_end*60,
+            agenda->epoch + events[ievent].rel_start*60,
+            agenda->epoch + events[ievent].rel_end*60,
         };
         if (times[0] > max_start_time) {
             APP_LOG(APP_LOG_LEVEL_DEBUG, "starts too late at %s", bsky_debug_fmt_time(times[0]));
