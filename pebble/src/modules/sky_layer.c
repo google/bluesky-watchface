@@ -176,8 +176,8 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
     time_t min_end_time = data->unix_time;
     for (int32_t index=0; index<agenda->events_length; ++index) {
         int32_t ievent
-            = agenda->height_index
-            ? agenda->height_index[index]
+            = agenda->events_by_height
+            ? agenda->events_by_height[index]
             : index;
         if (events[ievent].rel_start>=events[ievent].rel_end) {
             // Skip zero-length and negative-length events

@@ -20,19 +20,58 @@
 
 static void bsky_agenda_notify ();
 
-static const struct BSKY_DataEvent * cmp_agenda_height_index_agenda;
+// Using the built-in qsort function to sort an array of indices by the values
+// they index in another array requires making that other array available to
+// the "compare" function passed to qsort.
+//
+// See cmp_agenda_events_by_height.
+//
+static const struct BSKY_DataEvent * cmp_agenda_events_by_height_agenda;
 
-static int cmp_agenda_height_index(const void * a, const void * b) {
+// Compare two indices in a list of indices based on the values they index in
+// the cmp_agenda_events_by_height_agenda array.
+//
+// See bsky_agenda_update_events_by_height.
+//
+static int cmp_agenda_events_by_height(const void * a, const void * b) {
     uint16_t index [2] = { *((uint16_t*)a), *((uint16_t*)b) };
     int32_t duration[2];
     for (int i=0; i<2; ++i) {
-        int32_t start = cmp_agenda_height_index_agenda[index[i]].rel_start;
-        int32_t end = cmp_agenda_height_index_agenda[index[i]].rel_end;
+        int32_t start = cmp_agenda_events_by_height_agenda[index[i]].rel_start;
+        int32_t end = cmp_agenda_events_by_height_agenda[index[i]].rel_end;
         duration[i] = end-start;
     }
     return duration[0]-duration[1];
 }
 
+// Re-generate the events_by_height index.
+//
+static void bsky_agenda_update_events_by_height(struct BSKY_Agenda * agenda) {
+    if (agenda->events_by_height) {
+        free(agenda->events_by_height);
+    }
+    agenda->events_by_height
+        = calloc(agenda->events_length,
+                 sizeof(agenda->events_by_height[0]));
+    if (!agenda->events_by_height) {
+        APP_LOG(APP_LOG_LEVEL_ERROR,
+                "bsky_agenda_receive_data:"
+                " calloc failed for agenda height index; continuing");
+    } else {
+        for (int16_t i=0; i<agenda->events_length; ++i) {
+            agenda->events_by_height[i] = i;
+        }
+        cmp_agenda_events_by_height_agenda = agenda->events;
+        qsort (agenda->events_by_height,
+                agenda->events_length,
+                sizeof(agenda->events_by_height[0]),
+                cmp_agenda_events_by_height);
+        cmp_agenda_events_by_height_agenda = NULL;
+    }
+}
+
+// Update static state according to received data.
+//
 // Matches function type BSKY_DataReceiver.
 //
 static void bsky_agenda_receive_data(
@@ -48,44 +87,24 @@ static void bsky_agenda_receive_data(
             args.agenda_length,
             (args.agenda_changed ? "true" : "false"),
             args.agenda_epoch);
-    struct BSKY_Agenda * data = context;
+    struct BSKY_Agenda * agenda = context;
     bool changed
         = args.agenda_changed
-        || (args.agenda == NULL && data->events != NULL)
-        || (args.agenda != NULL && data->events == NULL);
-    data->events = args.agenda;
-    data->events_length = args.agenda_length;
-    data->epoch = args.agenda_epoch;
-    struct tm * epoch_wall_time = localtime(&data->epoch);
-    data->epoch_wall_time = *epoch_wall_time;
-    if (data->epoch_wall_time.tm_sec) {
+        || (args.agenda == NULL && agenda->events != NULL)
+        || (args.agenda != NULL && agenda->events == NULL);
+    agenda->events = args.agenda;
+    agenda->events_length = args.agenda_length;
+    agenda->epoch = args.agenda_epoch;
+    struct tm * epoch_wall_time = localtime(&agenda->epoch);
+    agenda->epoch_wall_time = *epoch_wall_time;
+    if (agenda->epoch_wall_time.tm_sec) {
         // TODO: fix this in the remote code by always rounding epoch down to
         // the minute.
-        data->epoch += (60 - data->epoch_wall_time.tm_sec);
-        data->epoch_wall_time.tm_sec = 0;
+        agenda->epoch += (60 - agenda->epoch_wall_time.tm_sec);
+        agenda->epoch_wall_time.tm_sec = 0;
     }
     if (args.agenda_changed) {
-        if (data->height_index) {
-            free(data->height_index);
-        }
-        data->height_index
-            = calloc(data->events_length,
-                     sizeof(data->height_index[0]));
-        if (!data->height_index) {
-            APP_LOG(APP_LOG_LEVEL_ERROR,
-                    "bsky_agenda_receive_data:"
-                    " calloc failed for agenda height index");
-        } else {
-            for (int16_t i=0; i<data->events_length; ++i) {
-                data->height_index[i] = i;
-            }
-            cmp_agenda_height_index_agenda = data->events;
-            qsort (data->height_index,
-                    data->events_length,
-                    sizeof(data->height_index[0]),
-                    cmp_agenda_height_index);
-            cmp_agenda_height_index_agenda = NULL;
-        }
+        bsky_agenda_update_events_by_height(agenda);
     }
     if (changed) {
         bsky_agenda_notify();
@@ -154,8 +173,8 @@ void bsky_agenda_deinit () {
         s_receivers[i].context = NULL;
     }
     bsky_data_set_receiver(NULL, NULL);
-    if (s_agenda.height_index) {
-        free (s_agenda.height_index);
-        s_agenda.height_index = NULL;
+    if (s_agenda.events_by_height) {
+        free (s_agenda.events_by_height);
+        s_agenda.events_by_height = NULL;
     }
 }

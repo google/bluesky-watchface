@@ -20,7 +20,7 @@ struct BSKY_Agenda {
     int32_t events_length;
     int32_t epoch;
     struct tm epoch_wall_time;
-    int16_t * height_index;
+    int16_t * events_by_height;
 };
 
 void bsky_agenda_init ();
