@@ -149,6 +149,18 @@ static void bsky_data_sync_tuple_changed (
             break;
     }
     if (call_receiver) {
+        APP_LOG(APP_LOG_LEVEL_DEBUG,
+                "bsky_data_sync_update: persisting agenda");
+        persist_write_data(
+                BSKY_DATAKEY_AGENDA,
+                s_agenda,
+                s_agenda_length_bytes);
+        persist_write_int(
+                BSKY_DATAKEY_AGENDA_VERSION,
+                s_agenda_version);
+        persist_write_int(
+                BSKY_DATAKEY_AGENDA_EPOCH,
+                s_agenda_epoch);
         bsky_data_call_receiver(agenda_version_changed);
         call_receiver = false;
         agenda_version_changed = false;
@@ -253,12 +265,36 @@ bool bsky_data_init(void) {
             free (s_buffer);
             s_buffer = NULL;
         }
-        uint8_t * zero_agenda = calloc (s_agenda_capacity_bytes, 1);
-        if (!zero_agenda) {
-            APP_LOG(APP_LOG_LEVEL_ERROR,
-                    "bsky_data_init:"
-                    " calloc failed to allocate initialization buffer");
-            return false;
+        uint8_t * initial_agenda = NULL;
+        size_t initial_agenda_length = 0;
+        if (!persist_exists(BSKY_DATAKEY_AGENDA)) {
+            initial_agenda = calloc (s_agenda_capacity_bytes, 1);
+            if (!initial_agenda) {
+                APP_LOG(APP_LOG_LEVEL_ERROR, "bsky_data_init: calloc failure");
+                return false;
+            }
+            initial_agenda_length = s_agenda_capacity_bytes;
+            APP_LOG(APP_LOG_LEVEL_DEBUG,
+                    "bsky_data_init: starting with zero agenda");
+        } else {
+            size_t size = persist_get_size(BSKY_DATAKEY_AGENDA);
+            initial_agenda = malloc (size);
+            if (!initial_agenda) {
+                APP_LOG(APP_LOG_LEVEL_ERROR, "bsky_data_init: malloc failure");
+                return false;
+            }
+            initial_agenda_length = persist_read_data(
+                    BSKY_DATAKEY_AGENDA,
+                    initial_agenda,
+                    size);
+            APP_LOG(APP_LOG_LEVEL_DEBUG,
+                    "bsky_data_init: starting with persisted agenda");
+        }
+        if (persist_exists(BSKY_DATAKEY_AGENDA_VERSION)) {
+            s_agenda_version = persist_read_int(BSKY_DATAKEY_AGENDA_VERSION);
+        }
+        if (persist_exists(BSKY_DATAKEY_AGENDA_EPOCH)) {
+            s_agenda_epoch = persist_read_int (BSKY_DATAKEY_AGENDA_EPOCH);
         }
         Tuplet initial_values[] = {
             TupletInteger(
@@ -267,26 +303,28 @@ bool bsky_data_init(void) {
                     BSKY_DATAKEY_AGENDA_CAPACITY_BYTES, (int32_t) 0),
             TupletBytes(
                     BSKY_DATAKEY_AGENDA,
-                    zero_agenda,
-                    s_agenda_capacity_bytes),
+                    initial_agenda,
+                    initial_agenda_length),
             TupletInteger(
-                    BSKY_DATAKEY_AGENDA_VERSION, (int32_t) 0),
+                    BSKY_DATAKEY_AGENDA_VERSION,
+                    s_agenda_version),
             TupletInteger(
                     BSKY_DATAKEY_PEBBLE_NOW_UNIX_TIME,
                     (int32_t) time(NULL)),
             TupletInteger(
                     BSKY_DATAKEY_AGENDA_EPOCH,
-                    (int32_t) 0),
+                    s_agenda_epoch),
         };
-        uint32_t buffer_size = dict_calc_buffer_size_from_tuplets(
-            initial_values,
-            sizeof(initial_values)/sizeof(initial_values[0]));
+        uint32_t buffer_size
+            = dict_calc_buffer_size_from_tuplets(
+                initial_values,
+                sizeof(initial_values)/sizeof(initial_values[0]))
+            + (s_agenda_capacity_bytes - initial_agenda_length);
         s_buffer = malloc(buffer_size);
         if (!s_buffer) {
-            free(zero_agenda);
+            free(initial_agenda);
             APP_LOG(APP_LOG_LEVEL_ERROR,
-                    "bsky_data_init:"
-                    " malloc failed to allocate sync buffer");
+                    "bsky_data_init: malloc failed to allocate sync buffer");
             return false;
         }
         APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_data_init: app_sync_init()");
@@ -299,7 +337,7 @@ bool bsky_data_init(void) {
                 bsky_data_sync_tuple_changed,
                 bsky_data_sync_error,
                 NULL);
-        free (zero_agenda);
+        free (initial_agenda);
         s_app_sync_inited_already = true;
     }
 
