@@ -285,7 +285,8 @@ void bsky_data_set_outgoing_int(uint32_t key, int32_t data) {
     const TupleType type = s_key_type[key];
     if (type != TUPLE_INT) {
         APP_LOG(APP_LOG_LEVEL_ERROR,
-                "key type is %d, got %d",
+                "%s type is %d, got %d",
+                s_key_name[key],
                 type,
                 TUPLE_INT);
     } else {
@@ -297,13 +298,16 @@ void bsky_data_set_outgoing_int(uint32_t key, int32_t data) {
 bool bsky_data_send_outgoing() {
     if (!bsky_data_init()) {
         APP_LOG(APP_LOG_LEVEL_WARNING,
-                "bsky_data_update:"
+                "bsky_data_send_outgoing:"
                 " failed to initialize, nothing to do");
         return false;
     }
     DictionaryIterator * iterator;
     AppMessageResult result = app_message_outbox_begin(&iterator);
     if (result != APP_MSG_OK) {
+        APP_LOG(APP_LOG_LEVEL_WARNING,
+                "bsky_data_send_outgoing: dictionary error: %d",
+                result);
         return false;
     }
     for (uint32_t key=0; key<BSKY_DATAKEY_MAX; ++key) {
@@ -312,8 +316,8 @@ bool bsky_data_send_outgoing() {
             switch (s_key_type[key]) {
                 case TUPLE_INT:
                     APP_LOG(APP_LOG_LEVEL_DEBUG,
-                            "writing %lu to outbox dict",
-                            key);
+                            "writing %s to outbox dict",
+                            s_key_name[key]);
                     dict_result = dict_write_int(
                             iterator,
                             key,
@@ -323,14 +327,14 @@ bool bsky_data_send_outgoing() {
                     break;
                 default:
                     APP_LOG(APP_LOG_LEVEL_WARNING,
-                            "skipping %lu",
-                            key);
+                            "skipping %s",
+                            s_key_name[key]);
                     break;
             }
             if (dict_result != DICT_OK) {
                 APP_LOG(APP_LOG_LEVEL_WARNING,
-                        "dictionary error writing %lu: %d",
-                        key,
+                        "dictionary error writing %s: %d",
+                        s_key_name[key],
                         dict_result);
             }
         }

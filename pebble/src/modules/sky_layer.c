@@ -187,11 +187,9 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
             agenda->epoch + events[ievent].rel_end*60,
         };
         if (times[0] > max_start_time) {
-            APP_LOG(APP_LOG_LEVEL_DEBUG, "starts too late at %s", bsky_debug_fmt_time(times[0]));
             continue;
         }
         if (times[1] <= min_end_time) {
-            APP_LOG(APP_LOG_LEVEL_DEBUG, "ends too early at %s", bsky_debug_fmt_time(times[1]));
             continue;
         }
         graphics_context_set_fill_color(ctx, GColorBlack);
