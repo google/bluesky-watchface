@@ -199,6 +199,38 @@ bool bsky_data_init(void) {
 void bsky_data_deinit(void) {
 }
 
+int32_t bsky_data_int(uint32_t key) {
+    const TupleType type = s_key_type[key];
+    bool ok = key<BSKY_DATAKEY_MAX
+        && type==TUPLE_INT
+        && s_key_size[key]==sizeof(int32_t);
+    if (!ok) {
+        APP_LOG(APP_LOG_LEVEL_ERROR,
+                "bsky_data_int: bad request for key %lu",
+                key);
+        return 0;
+    }
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_data_int: %s", s_key_name[key]);
+    int32_t * const buffer = &s_key_buffer[key].int32;
+    if (!s_key_buffer_initialized[key] && persist_exists(key)) {
+        APP_LOG(APP_LOG_LEVEL_DEBUG,
+                "bsky_data_int: loading from local storage");
+        *buffer = persist_read_int(key);
+        s_key_buffer_initialized[key] = true;
+    }
+    if (!s_key_buffer_initialized[key]) {
+        APP_LOG(APP_LOG_LEVEL_DEBUG,
+                "bsky_data_int: %s has no value",
+                s_key_name[key]);
+        return 0;
+    }
+    APP_LOG(APP_LOG_LEVEL_DEBUG,
+            "bsky_data_int: %s == %ld",
+            s_key_name[key],
+            s_key_buffer[key].int32);
+    return *buffer;
+}
+
 const void * bsky_data_ptr(uint32_t key, size_t * length_bytes) {
     const TupleType type = s_key_type[key];
     bool ok = key<BSKY_DATAKEY_MAX
@@ -211,8 +243,8 @@ const void * bsky_data_ptr(uint32_t key, size_t * length_bytes) {
         *length_bytes = 0;
         return NULL;
     }
-    void * const buffer = s_key_buffer[key].ptr;
     APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_data_ptr: %s", s_key_name[key]);
+    void * const buffer = s_key_buffer[key].ptr;
     if (!s_key_buffer_initialized[key] && persist_exists(key)) {
         APP_LOG(APP_LOG_LEVEL_DEBUG,
                 "bsky_data_ptr: attempting load from local storage");

@@ -45,6 +45,12 @@ bool bsky_data_init(void);
 //
 void bsky_data_deinit(void);
 
+// Retrieve a copy of the int32 value of a key.
+//
+// Returns: the value of the key if that value is an int, otherwise zero.
+//
+int32_t bsky_data_int(uint32_t key);
+
 // Retrieve a pointer to the value of a key where that value is a byte array.
 //
 // key: a key whose value is known to be a byte array.
