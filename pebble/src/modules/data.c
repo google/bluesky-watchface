@@ -339,45 +339,16 @@ bool bsky_data_send_outgoing() {
             }
         }
     }
-    return app_message_outbox_send() == APP_MSG_OK;
-    /*
-    // Decide whether an update is necessary
-    const Tuple * agenda_capacity_bytes
-        = app_sync_get(&s_sync, BSKY_DATAKEY_AGENDA_CAPACITY_BYTES);
-    if (agenda_need_seconds->value->int32 == s_agenda_need_seconds
-        &&
-        agenda_capacity_bytes->value->int32 == s_agenda_capacity_bytes
-        &&
-        s_agenda_version != 0)
-    {
-        APP_LOG(APP_LOG_LEVEL_DEBUG,
-                "bsky_data_update: nothing to do");
-        return;
-    }
-    // Send update using app_sync_set
-    Tuplet values[] = {
-        TupletInteger(
-                BSKY_DATAKEY_AGENDA_NEED_SECONDS,
-                s_agenda_need_seconds),
-        TupletInteger(
-                BSKY_DATAKEY_AGENDA_CAPACITY_BYTES,
-                s_agenda_capacity_bytes),
-        TupletInteger(
-                BSKY_DATAKEY_PEBBLE_NOW_UNIX_TIME,
-                (int32_t) time(NULL)),
-    };
-    AppMessageResult result = app_sync_set(
-            &s_sync, values, sizeof(values)/sizeof(values[0]));
-    if (result != APP_MSG_OK) {
+    result = app_message_outbox_send();
+    if (result!=APP_MSG_OK) {
         APP_LOG(APP_LOG_LEVEL_WARNING,
-                "bsky_data_update: app_sync_set: %u",
+                "bsky_data_send_outgoing: AppMessageResult: %d",
                 result);
-    } else {
-        APP_LOG(APP_LOG_LEVEL_INFO,
-                "bsky_data_update: app_sync_set: ok!");
-        s_update_in_progress = true;
+        return false;
     }
-    */
+    APP_LOG(APP_LOG_LEVEL_INFO,
+            "bsky_data_send_outgoing: sent message");
+    return true;
 }
 
 struct BSKY_DataReceiverInfo {
