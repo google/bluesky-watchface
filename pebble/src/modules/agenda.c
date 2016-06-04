@@ -74,16 +74,13 @@ static void bsky_agenda_update_events_by_height(struct BSKY_Agenda * agenda) {
     }
 }
 
-// Update static state according to received data.
-//
-// Matches function type BSKY_DataReceiver.
-//
-static void bsky_agenda_receive_data(void * context) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_agenda_receive_data");
-    struct BSKY_Agenda * const agenda = context;
+static void bsky_agenda_reload(struct BSKY_Agenda * agenda) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_agenda_reload");
+
+    int32_t epoch = bsky_data_int(BSKY_DATAKEY_AGENDA_EPOCH);
 
     size_t num_bytes;
-    const uint8_t * bytes = bsky_data_ptr(BSKY_DATAKEY_AGENDA, &num_bytes);
+    const void * bytes = bsky_data_ptr(BSKY_DATAKEY_AGENDA, &num_bytes);
     if (!bytes || num_bytes==0) {
         APP_LOG(APP_LOG_LEVEL_INFO,
                 "bsky_agenda_receive_data: no agenda data available yet");
@@ -91,20 +88,14 @@ static void bsky_agenda_receive_data(void * context) {
         return;
     }
 
-    // Don't request another update for at least a few hours.
-    s_next_attempt_update = time(NULL) + 6*60*60;
-
     APP_LOG(APP_LOG_LEVEL_INFO,
             "bsky_agenda_receive_data: %u bytes",
             num_bytes);
-    agenda->epoch = *((const int32_t *)bytes);
+    agenda->epoch = epoch;
     struct tm * epoch_wall_time = localtime(&agenda->epoch);
     agenda->epoch_wall_time = *epoch_wall_time;
-    agenda->events_length = num_bytes - sizeof(int32_t);
-    agenda->events
-        = agenda->events_length
-        ? (void *)&bytes[sizeof(int32_t)]
-        : NULL;
+    agenda->events_length = num_bytes / sizeof(agenda->events[0]);
+    agenda->events = bytes;
     if (agenda->epoch_wall_time.tm_sec) {
         // TODO: fix this in the remote code by always rounding epoch down to
         // the minute.
@@ -114,6 +105,19 @@ static void bsky_agenda_receive_data(void * context) {
     bsky_agenda_update_events_by_height(agenda);
     APP_LOG(APP_LOG_LEVEL_INFO,
             "bsky_agenda_receive_data: finished receiving agenda update");
+}
+
+// Update static state according to received data.
+//
+// Matches function type BSKY_DataReceiver.
+//
+static void bsky_agenda_receive_data(void * context) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_agenda_receive_data");
+
+    // Don't request another update for at least a few hours.
+    s_next_attempt_update = time(NULL) + 6*60*60;
+
+    bsky_agenda_reload(context);
 }
 
 static struct BSKY_Agenda s_agenda;
@@ -133,7 +137,7 @@ const struct BSKY_Agenda * bsky_agenda_read () {
 
 void bsky_agenda_init () {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_agenda_init()");
-    bsky_agenda_receive_data(&s_agenda);
+    bsky_agenda_reload(&s_agenda);
     bsky_data_subscribe(
             bsky_agenda_receive_data,
             &s_agenda,
