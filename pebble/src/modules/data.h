@@ -61,6 +61,12 @@ int32_t bsky_data_int(uint32_t key);
 //
 const void * bsky_data_ptr(uint32_t key, size_t * length_bytes);
 
+// Set an int value to be sent the next time bsky_data_send_outgoing is called.
+//
+// TODO: refactor this API to just "set_int" or similar;
+// bsky_data_send_outgoing can become something more like "synchronize" similar
+// to AppSync API.
+//
 void bsky_data_set_outgoing_int(uint32_t key, int32_t data);
 
 bool bsky_data_send_outgoing();

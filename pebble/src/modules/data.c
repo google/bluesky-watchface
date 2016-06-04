@@ -63,6 +63,9 @@ union BSKY_Value {
     int32_t int32;
 };
 
+// Statically allocated buffer for all data that is either sent, received, or
+// persisted.
+//
 static union BSKY_Value s_key_buffer [BSKY_DATAKEY_MAX] = {
     [BSKY_DATAKEY_AGENDA_NEED_SECONDS] = {.int32=24*60*60},
     [BSKY_DATAKEY_AGENDA_CAPACITY_BYTES] = {.int32=sizeof(s_agenda_buffer)},
@@ -88,8 +91,17 @@ static size_t bsky_data_buffer_size(const bool * filter) {
     return buffer_size;
 }
 
-static void bsky_data_notify (const bool * key);
+// Notify all subscribers that are interested in keys associated with true
+// values through the provided keys map.
+//
+// keys: bool[SKY_DATAKEY_MAX].  true for keys that have changed, false for
+// keys that have not.
+//
+static void bsky_data_notify (const bool * keys);
 
+// Callback for the Pebble AppMessage API; receives messages from the remote
+// device.
+//
 static void bsky_data_in_received(DictionaryIterator *iterator, void *context) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_data_in_received");
     bool keys [BSKY_DATAKEY_MAX];
@@ -122,6 +134,11 @@ static void bsky_data_in_received(DictionaryIterator *iterator, void *context) {
                     s_key_size[key],
                     tuple->length);
         } else {
+            // Copy incoming data to static buffers
+            //
+            // TODO: persist values through the Pebble Storage API only if
+            // they've been flagged for persistent storage.  Not all incoming
+            // data should be so stored.
             switch (tuple->type) {
                 case TUPLE_BYTE_ARRAY:
                 case TUPLE_CSTRING:
@@ -152,62 +169,58 @@ static void bsky_data_in_received(DictionaryIterator *iterator, void *context) {
     bsky_data_notify (keys);
 }
 
+// Callback for the Pebble AppMessage API.
+//
 static void bsky_data_in_dropped(AppMessageResult reason, void *context) {
     APP_LOG(APP_LOG_LEVEL_WARNING, "bsky_data_in_dropped");
 }
 
+// Callback for the Pebble AppMessage API.
+//
 static void bsky_data_out_sent(DictionaryIterator *iterator, void *context) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_data_out_sent");
     // TODO: remember that values flagged for sending have been sent
 }
 
+// Callback for the Pebble AppMessage API.
+//
 static void bsky_data_out_failed(DictionaryIterator *iterator, AppMessageResult reason, void *context) {
     APP_LOG(APP_LOG_LEVEL_WARNING, "bsky_data_out_failed");
     // TODO: remember that values flagged for sending have not been sent
 }
 
 bool bsky_data_init(void) {
-    // We use static bool values to help ensure this method is
-    // idempotent and can safely be called many times over as a way to
-    // ensure, whenever we want to, that this module is initialized.
-
     static bool s_bsky_data_inited_already = false;
-    static bool s_app_message_opened_already = false;
-
     if (s_bsky_data_inited_already) { return true; }
     APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_data_init()");
 
-    // Open the app_message inbox and outboxes.  Doing this before
-    // registering app_message event handlers may result in dropping
-    // some incoming messages, however we will be resilient to this.
-    //
-    if (!s_app_message_opened_already) {
-        app_message_register_inbox_received(bsky_data_in_received);
-        app_message_register_inbox_dropped(bsky_data_in_dropped);
-        app_message_register_outbox_sent(bsky_data_out_sent);
-        app_message_register_outbox_failed(bsky_data_out_failed);
-        const uint32_t size_outbound = bsky_data_buffer_size(s_key_outgoing);
-        const uint32_t size_inbound = bsky_data_buffer_size(s_key_incoming);
-        AppMessageResult result = app_message_open(
-                size_inbound,
-                size_outbound);
-        if (result != APP_MSG_OK) {
-            APP_LOG(APP_LOG_LEVEL_ERROR, "app_message_open: %u", result);
-            return false;
-        }
-        s_app_message_opened_already = true;
+    app_message_register_inbox_received(bsky_data_in_received);
+    app_message_register_inbox_dropped(bsky_data_in_dropped);
+    app_message_register_outbox_sent(bsky_data_out_sent);
+    app_message_register_outbox_failed(bsky_data_out_failed);
+
+    AppMessageResult result = app_message_open(
+            bsky_data_buffer_size(s_key_outgoing),
+            bsky_data_buffer_size(s_key_incoming));
+    if (result != APP_MSG_OK) {
+        APP_LOG(APP_LOG_LEVEL_ERROR, "app_message_open: %u", result);
+        return false;
     }
 
-    APP_LOG(APP_LOG_LEVEL_INFO, "bsky_data_init: successful!");
     s_bsky_data_inited_already = true;
+    APP_LOG(APP_LOG_LEVEL_INFO, "bsky_data_init: successful!");
     return s_bsky_data_inited_already;
 }
 
 void bsky_data_deinit(void) {
+    // TODO: remove all subscribers
 }
 
 int32_t bsky_data_int(uint32_t key) {
     const TupleType type = s_key_type[key];
+
+    // Filter out bad requests, this should never happen on non-developer
+    // devices.
     bool ok = key<BSKY_DATAKEY_MAX
         && type==TUPLE_INT
         && s_key_size[key]==sizeof(int32_t);
@@ -217,20 +230,26 @@ int32_t bsky_data_int(uint32_t key) {
                 key);
         return 0;
     }
+
     APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_data_int: %s", s_key_name[key]);
     int32_t * const buffer = &s_key_buffer[key].int32;
+
+    // If appropriate, attempt to fill the buffer from persistent storage.
+    //
     if (!s_key_buffer_initialized[key] && persist_exists(key)) {
         APP_LOG(APP_LOG_LEVEL_DEBUG,
                 "bsky_data_int: loading from local storage");
         *buffer = persist_read_int(key);
         s_key_buffer_initialized[key] = true;
     }
+
     if (!s_key_buffer_initialized[key]) {
         APP_LOG(APP_LOG_LEVEL_DEBUG,
                 "bsky_data_int: %s has no value",
                 s_key_name[key]);
         return 0;
     }
+
     APP_LOG(APP_LOG_LEVEL_DEBUG,
             "bsky_data_int: %s == %ld",
             s_key_name[key],
@@ -240,6 +259,9 @@ int32_t bsky_data_int(uint32_t key) {
 
 const void * bsky_data_ptr(uint32_t key, size_t * length_bytes) {
     const TupleType type = s_key_type[key];
+
+    // Filter out bad requests, this should never happen on non-developer
+    // devices.
     bool ok = key<BSKY_DATAKEY_MAX
         && (type == TUPLE_BYTE_ARRAY || type == TUPLE_CSTRING)
         && s_key_buffer[key].ptr;
@@ -250,8 +272,12 @@ const void * bsky_data_ptr(uint32_t key, size_t * length_bytes) {
         *length_bytes = 0;
         return NULL;
     }
+
     APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_data_ptr: %s", s_key_name[key]);
     void * const buffer = s_key_buffer[key].ptr;
+
+    // If appropriate, attempt to fill the buffer from persistent storage.
+    //
     if (!s_key_buffer_initialized[key] && persist_exists(key)) {
         APP_LOG(APP_LOG_LEVEL_DEBUG,
                 "bsky_data_ptr: attempting load from local storage");
@@ -266,6 +292,7 @@ const void * bsky_data_ptr(uint32_t key, size_t * length_bytes) {
             s_key_buffer_length[key] = available;
         }
     }
+
     if (!s_key_buffer_initialized[key]) {
         APP_LOG(APP_LOG_LEVEL_DEBUG,
                 "bsky_data_ptr: %s has no value",
@@ -273,6 +300,7 @@ const void * bsky_data_ptr(uint32_t key, size_t * length_bytes) {
         *length_bytes = 0;
         return NULL;
     }
+
     APP_LOG(APP_LOG_LEVEL_DEBUG,
             "bsky_data_ptr: %s has value %u bytes long",
             s_key_name[key],

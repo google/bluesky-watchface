@@ -20,21 +20,6 @@
 #include "palette.h"
 #include "sky_layer.h"
 
-/* Cycles:
- *  Regular numeric cycles:
- *   Minute of 60 seconds
- *   Hour of 60 minutes
- *   Day of 24 hours (but daylight savings...?)
- *  Regular named cycles
- *   Week of 7 named days
- *  Mostly-constant astronomical cycles:
- *   Moon phase cycle of about 29.53 days
- *   Solar year of about 365.25 days
- *  Irregular but well-defined cycles:
- *   Gregorian Month of 28, 29, 30, or 31 days
- *   Gregorian Year of 365 or 366 days
- */
-
 // Custom state per sky layer.
 //
 typedef struct {
@@ -72,6 +57,12 @@ static void bsky_sky_layer_agenda_update(void * context) {
     layer_mark_dirty((Layer*)context);
 }
 
+// Get an easily human-readable representation of a time_t.
+//
+// TODO: refactor this to avoid potentially sharing and corrupting the static
+// string buffer; maybe write a log message with a given prefix followed by the
+// time.
+//
 static const char * bsky_debug_fmt_time (time_t t) {
     const struct tm *local_now = localtime(&t);
     static char s_time_buffer[20];
@@ -84,6 +75,10 @@ static const char * bsky_debug_fmt_time (time_t t) {
     return s_time_buffer;
 }
 
+// Pebble Layer callback to do the rendering work.
+//
+// TODO: split this up, maybe even going as far as creating separate layers.
+//
 static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
     APP_LOG(APP_LOG_LEVEL_DEBUG,
             "bsky_sky_layer_update(%p, %p)",
@@ -298,6 +293,14 @@ BSKY_SkyLayer * bsky_sky_layer_create(GRect frame) {
                     bsky_sky_layer_agenda_update,
                     sky_layer->layer,
                     BSKY_DATAKEY_AGENDA)) {
+                // This should never happen on non-developer devices: the
+                // number of subscribers supported by the Data module should be
+                // hard-coded to a sufficient limit.
+                //
+                // TODO: log this error from within the bsky_data_subscribe
+                // function instead and have it return void; there's nothing
+                // smart for a caller to do in this case anyway.
+                //
                 APP_LOG(APP_LOG_LEVEL_ERROR,
                         "bsky_sky_layer_create:"
                         " failed to subscribe to agenda updates");
@@ -321,9 +324,6 @@ void bsky_sky_layer_destroy(BSKY_SkyLayer *sky_layer) {
 }
 
 Layer * bsky_sky_layer_get_layer(BSKY_SkyLayer *sky_layer) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG,
-            "bsky_sky_layer_get_layer(%p)",
-            sky_layer);
     return sky_layer->layer;
 }
 

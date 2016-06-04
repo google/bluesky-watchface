@@ -22,6 +22,8 @@ struct BSKY_AgendaEvent {
     int16_t rel_end;
 };
 
+// TODO: Hide this struct, which is only allocated once and statically anyway.
+//       Provide functions to retrieve its values separately.
 struct BSKY_Agenda {
     const struct BSKY_AgendaEvent * events;
     int32_t events_length;
