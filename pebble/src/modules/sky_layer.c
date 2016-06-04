@@ -65,10 +65,9 @@ static GRect bsky_rect_trim (const GRect rect, const int8_t trim) {
     return result;
 }
 
-// Matches BSKY_AgendaReceiver.
+// Matches BSKY_DataReceiver
 //
-static void bsky_sky_layer_agenda_update(
-        void * context) {
+static void bsky_sky_layer_agenda_update(void * context) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_sky_layer_agenda_update");
     layer_mark_dirty((Layer*)context);
 }
@@ -171,7 +170,7 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
     const uint16_t duration_min = 20*60;
     const uint16_t duration_max = 90*60;
     const struct BSKY_Agenda * agenda = bsky_agenda_read();
-    const struct BSKY_DataEvent * events = agenda->events;
+    const struct BSKY_AgendaEvent * events = agenda->events;
     time_t max_start_time = data->unix_time+24*60*60;
     time_t min_end_time = data->unix_time;
     for (int32_t index=0; index<agenda->events_length; ++index) {
@@ -297,9 +296,10 @@ BSKY_SkyLayer * bsky_sky_layer_create(GRect frame) {
             layer_set_update_proc(
                     sky_layer->layer,
                     bsky_sky_layer_update);
-            if (!bsky_agenda_subscribe(
+            if (!bsky_data_subscribe(
                     bsky_sky_layer_agenda_update,
-                    sky_layer->layer)) {
+                    sky_layer->layer,
+                    BSKY_DATAKEY_AGENDA)) {
                 APP_LOG(APP_LOG_LEVEL_ERROR,
                         "bsky_sky_layer_create:"
                         " failed to subscribe to agenda updates");
@@ -313,7 +313,7 @@ void bsky_sky_layer_destroy(BSKY_SkyLayer *sky_layer) {
     APP_LOG(APP_LOG_LEVEL_DEBUG,
             "bsky_sky_layer_destroy(%p)",
             sky_layer);
-    bsky_agenda_unsubscribe(
+    bsky_data_unsubscribe(
             bsky_sky_layer_agenda_update,
             sky_layer->layer);
     layer_destroy(sky_layer->layer);

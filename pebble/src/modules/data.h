@@ -15,6 +15,18 @@
  */
 #pragma once
 
+// All known data keys, synchronized with ../../appinfo.js#appKeys.
+//
+enum BSKY_DataKey {
+    BSKY_DATAKEY_AGENDA_NEED_SECONDS = 1,
+    BSKY_DATAKEY_AGENDA_CAPACITY_BYTES = 2,
+    BSKY_DATAKEY_AGENDA = 3,
+    BSKY_DATAKEY_AGENDA_VERSION = 4,
+    BSKY_DATAKEY_PEBBLE_NOW_UNIX_TIME = 5,
+    BSKY_DATAKEY_AGENDA_EPOCH = 6,
+    BSKY_DATAKEY_MAX = 7, // largest key + 1
+};
+
 // Initialize the data module.
 //
 // This function is either idempotent or buggy: treat it as idempotent
@@ -33,34 +45,38 @@ bool bsky_data_init(void);
 //
 void bsky_data_deinit(void);
 
-// Perform periodic data synchronization tasks.
+// Retrieve a pointer to the value of a key where that value is a byte array.
 //
-void bsky_data_update(void);
-
-// Start and end times for an event as minutes relative to a custom epoch.
+// key: a key whose value is known to be a byte array.
+// length_bytes: the address where the length of the array will be written.
 //
-struct BSKY_DataEvent {
-    int16_t rel_start;
-    int16_t rel_end;
-};
-
-struct BSKY_DataReceiverArgs {
-    const struct BSKY_DataEvent * agenda;
-    int32_t agenda_length;
-    bool agenda_changed;
-    int32_t agenda_epoch;
-};
-
-typedef void (*BSKY_DataReceiver) (
-        void * context,
-        struct BSKY_DataReceiverArgs args);
-
-// Set the receiver for incoming data
+// Returns: if the key has a value that is an array, then a pointer to the
+// array; otherwise NULL.
 //
-// The existing receiver, if any, will be replaced.  A NULL receiver
-// indicates that the app is not interested in receiving anything.  The
-// implementation may decide not to request updates in this case.
+const void * bsky_data_ptr(uint32_t key, size_t * length_bytes);
+
+void bsky_data_set_outgoing_int(uint32_t key, int32_t data);
+
+bool bsky_data_send_outgoing();
+
+// Function type for data update subscriber callback functions.
 //
-void bsky_data_set_receiver (
+typedef void (*BSKY_DataReceiver) (void * context);
+
+// Subscribe to data updates.
+//
+// May be called many times with different contexts and keys.
+//
+// Returns true if subscription was successful, otherwise false.
+//
+bool bsky_data_subscribe (
         BSKY_DataReceiver receiver,
-        void * context);
+        void * context,
+        uint32_t key);
+
+// Unsubscribe from all data updates for a given receiver and context.
+// 
+// Has no effect unless bsky_data_subscribe was previously called with the same
+// receiver and context.
+//
+void bsky_data_unsubscribe (BSKY_DataReceiver receiver, void * context);

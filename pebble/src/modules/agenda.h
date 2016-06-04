@@ -15,8 +15,15 @@
  */
 #pragma once
 
+// Start and end times for an event as minutes relative to a custom epoch.
+//
+struct BSKY_AgendaEvent {
+    int16_t rel_start;
+    int16_t rel_end;
+};
+
 struct BSKY_Agenda {
-    const struct BSKY_DataEvent * events;
+    const struct BSKY_AgendaEvent * events;
     int32_t events_length;
     int32_t epoch;
     struct tm epoch_wall_time;
@@ -28,24 +35,3 @@ void bsky_agenda_init ();
 void bsky_agenda_deinit ();
 
 const struct BSKY_Agenda * bsky_agenda_read ();
-
-// Function type for Agenda update receivers.
-//
-typedef void (*BSKY_AgendaReceiver) (void * context);
-
-// Subscribe to Agenda updates.
-//
-// Returns true if subscription was successful, otherwise false.
-//
-bool bsky_agenda_subscribe (
-        BSKY_AgendaReceiver receiver,
-        void * context);
-
-// Unsubscribe to Agenda updates.
-//
-// Undoes the effect of calling bsky_agenda_subscribe with exactly the same
-// arguments i.e. context must match too.
-//
-void bsky_agenda_unsubscribe (
-        BSKY_AgendaReceiver receiver,
-        void * context);

@@ -18,7 +18,9 @@
 #include "data.h"
 #include "agenda.h"
 
-static void bsky_agenda_notify ();
+// The next time it would be acceptable to request an update.
+//
+static time_t s_next_attempt_update;
 
 // Using the built-in qsort function to sort an array of indices by the values
 // they index in another array requires making that other array available to
@@ -26,7 +28,7 @@ static void bsky_agenda_notify ();
 //
 // See cmp_agenda_events_by_height.
 //
-static const struct BSKY_DataEvent * cmp_agenda_events_by_height_agenda;
+static const struct BSKY_AgendaEvent * cmp_agenda_events_by_height_agenda;
 
 // Compare two indices in a list of indices based on the values they index in
 // the cmp_agenda_events_by_height_agenda array.
@@ -55,8 +57,10 @@ static void bsky_agenda_update_events_by_height(struct BSKY_Agenda * agenda) {
                  sizeof(agenda->events_by_height[0]));
     if (!agenda->events_by_height) {
         APP_LOG(APP_LOG_LEVEL_ERROR,
-                "bsky_agenda_receive_data:"
-                " calloc failed for agenda height index; continuing");
+                "bsky_agenda_update_events_by_height:"
+                " calloc failed for %lu x %u bytes",
+                agenda->events_length,
+                sizeof(agenda->events_by_height[0]));
     } else {
         for (int16_t i=0; i<agenda->events_length; ++i) {
             agenda->events_by_height[i] = i;
@@ -74,105 +78,71 @@ static void bsky_agenda_update_events_by_height(struct BSKY_Agenda * agenda) {
 //
 // Matches function type BSKY_DataReceiver.
 //
-static void bsky_agenda_receive_data(
-        void * context,
-        struct BSKY_DataReceiverArgs args) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG,
-            "bsky_agenda_receive_data:"
-            " agenda=%p"
-            ",agenda_length=%ld"
-            ",agenda_changed=%s"
-            ",agenda_epoch=%ld",
-            args.agenda,
-            args.agenda_length,
-            (args.agenda_changed ? "true" : "false"),
-            args.agenda_epoch);
-    struct BSKY_Agenda * agenda = context;
-    bool changed
-        = args.agenda_changed
-        || (args.agenda == NULL && agenda->events != NULL)
-        || (args.agenda != NULL && agenda->events == NULL);
-    agenda->events = args.agenda;
-    agenda->events_length = args.agenda_length;
-    agenda->epoch = args.agenda_epoch;
+static void bsky_agenda_receive_data(void * context) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_agenda_receive_data");
+    struct BSKY_Agenda * const agenda = context;
+
+    size_t num_bytes;
+    const uint8_t * bytes = bsky_data_ptr(BSKY_DATAKEY_AGENDA, &num_bytes);
+    if (!bytes || num_bytes==0) {
+        APP_LOG(APP_LOG_LEVEL_INFO,
+                "bsky_agenda_receive_data: no agenda data available yet");
+        agenda->events_length = 0;
+        return;
+    }
+
+    // Don't request another update for at least a few hours.
+    s_next_attempt_update = time(NULL) + 6*60*60;
+
+    APP_LOG(APP_LOG_LEVEL_INFO,
+            "bsky_agenda_receive_data: %u bytes",
+            num_bytes);
+    agenda->epoch = *((const int32_t *)bytes);
     struct tm * epoch_wall_time = localtime(&agenda->epoch);
     agenda->epoch_wall_time = *epoch_wall_time;
+    agenda->events_length = num_bytes - sizeof(int32_t);
+    agenda->events
+        = agenda->events_length
+        ? (void *)&bytes[sizeof(int32_t)]
+        : NULL;
     if (agenda->epoch_wall_time.tm_sec) {
         // TODO: fix this in the remote code by always rounding epoch down to
         // the minute.
         agenda->epoch += (60 - agenda->epoch_wall_time.tm_sec);
         agenda->epoch_wall_time.tm_sec = 0;
     }
-    if (args.agenda_changed) {
-        bsky_agenda_update_events_by_height(agenda);
-    }
-    if (changed) {
-        bsky_agenda_notify();
-    }
-}
-
-struct BSKY_AgendaReceiverInfo {
-    BSKY_AgendaReceiver receiver;
-    void * context;
-};
-
-struct BSKY_AgendaReceiverInfo s_receivers [4];
-
-static void bsky_agenda_notify () {
-    for (size_t i=0; i<sizeof(s_receivers)/sizeof(s_receivers[0]); ++i) {
-        if (s_receivers[i].receiver) {
-            s_receivers[i].receiver(s_receivers[i].context);
-        }
-    }
-}
-
-bool bsky_agenda_subscribe (
-        BSKY_AgendaReceiver receiver,
-        void * context) {
-    for (size_t i=0; i<sizeof(s_receivers)/sizeof(s_receivers[0]); ++i) {
-        if (!s_receivers[i].receiver) {
-            s_receivers[i].receiver = receiver;
-            s_receivers[i].context = context;
-            return true;
-        }
-    }
-    return false;
-}
-
-void bsky_agenda_unsubscribe (
-        BSKY_AgendaReceiver receiver,
-        void * context) {
-    for (size_t i=0; i<sizeof(s_receivers)/sizeof(s_receivers[0]); ++i) {
-        if (s_receivers[i].receiver==receiver
-                && s_receivers[i].context==context) {
-            s_receivers[i].receiver = NULL;
-            s_receivers[i].context = NULL;
-        }
-    }
+    bsky_agenda_update_events_by_height(agenda);
+    APP_LOG(APP_LOG_LEVEL_INFO,
+            "bsky_agenda_receive_data: finished receiving agenda update");
 }
 
 static struct BSKY_Agenda s_agenda;
 
-const struct BSKY_Agenda * bsky_agenda_read () { return &s_agenda; }
+const struct BSKY_Agenda * bsky_agenda_read () {
+    // Take this opportunity to trigger an update?
+    time_t now = time(NULL);
+    if (now >= s_next_attempt_update) {
+        s_next_attempt_update = now + 30;
+        bsky_data_set_outgoing_int(BSKY_DATAKEY_AGENDA_NEED_SECONDS, 24*60*60);
+        bsky_data_set_outgoing_int(BSKY_DATAKEY_AGENDA_CAPACITY_BYTES, 1024);
+        bsky_data_set_outgoing_int(BSKY_DATAKEY_PEBBLE_NOW_UNIX_TIME, now);
+        bsky_data_send_outgoing();
+    }
+    return &s_agenda;
+}
 
 void bsky_agenda_init () {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_agenda_init()");
-    bsky_data_set_receiver(
+    bsky_agenda_receive_data(&s_agenda);
+    bsky_data_subscribe(
             bsky_agenda_receive_data,
-            &s_agenda);
-    for (size_t i=0; i<sizeof(s_receivers)/sizeof(s_receivers[0]); ++i) {
-        s_receivers[i].receiver = NULL;
-        s_receivers[i].context = NULL;
-    }
+            &s_agenda,
+            BSKY_DATAKEY_AGENDA);
 }
 
 void bsky_agenda_deinit () {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_agenda_deinit()");
-    for (size_t i=0; i<sizeof(s_receivers)/sizeof(s_receivers[0]); ++i) {
-        s_receivers[i].receiver = NULL;
-        s_receivers[i].context = NULL;
-    }
-    bsky_data_set_receiver(NULL, NULL);
+    bsky_data_unsubscribe(bsky_agenda_receive_data, &s_agenda);
     if (s_agenda.events_by_height) {
         free (s_agenda.events_by_height);
         s_agenda.events_by_height = NULL;
