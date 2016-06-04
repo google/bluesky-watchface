@@ -62,10 +62,10 @@ static union BSKY_Value s_key_buffer [BSKY_DATAKEY_MAX] = {
     [BSKY_DATAKEY_AGENDA] = {.ptr=s_agenda_buffer},
 };
 
-static bool s_key_buffer_initialized [BSKY_DATAKEY_AGENDA] = {0};
+static bool s_key_buffer_initialized [BSKY_DATAKEY_MAX] = {0};
 
 // buffer_length is the number of bytes currently meaningful in each buffer.
-static size_t s_key_buffer_length [BSKY_DATAKEY_AGENDA] = {0};
+static size_t s_key_buffer_length [BSKY_DATAKEY_MAX] = {0};
 
 // Calculate the buffer size for an inbox or outbox.
 //
