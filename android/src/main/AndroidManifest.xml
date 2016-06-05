@@ -35,5 +35,8 @@
                     />
             </intent-filter>
         </receiver>
+        <service
+            android:name=".MainService"
+            />
     </application>
 </manifest>
