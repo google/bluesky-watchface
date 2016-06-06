@@ -1,8 +1,13 @@
 # Blue Sky
 
-A custom watchface for Pebble Round devices.
-
 ![Screenshot](screenshot.png)
+
+Blue Sky is a watchface that shows the Sun as an hour hand against the blue
+sky.  Calendar events are displayed as buildings in a city's skyline around a
+12 or 24 hour face.  Shorter events resemble tall towers while longer events
+look more like wide warehouses.  While Pebble's built in timeline feature makes
+it easy to find out more about these events, a companion app is required to get
+the same information into the watch face itself.  Only Android is supported.
 
 Before submitting a pull request, please review
 [CONTRIBUTING.md](CONTRIBUTING.md).
