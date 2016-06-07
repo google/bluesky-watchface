@@ -23,9 +23,9 @@ public class BlueSkyConstants
         = new UUID(0xf205e9af41244829L, 0xa5bb53cc3f8b0362L);
 
     static final int AGENDA_NEED_SECONDS_KEY = 1;
-    static final int AGENDA_CAPACITY_BYTES = 2;
+    static final int AGENDA_CAPACITY_BYTES_KEY = 2;
     static final int AGENDA_KEY = 3;
     static final int AGENDA_VERSION_KEY = 4;
-    static final int PEBBLE_NOW_UNIX_TIME = 5;
+    static final int PEBBLE_NOW_UNIX_TIME_KEY = 5;
     static final int AGENDA_EPOCH_KEY = 6;
 };

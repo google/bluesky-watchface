@@ -48,8 +48,8 @@ public class MainReceiver extends PebbleKit.PebbleDataReceiver
         Log.d(TAG, "ACK");
 
         if (data.contains(BlueSkyConstants.AGENDA_NEED_SECONDS_KEY)
-                && data.contains(BlueSkyConstants.AGENDA_CAPACITY_BYTES)
-                && data.contains(BlueSkyConstants.PEBBLE_NOW_UNIX_TIME))
+                && data.contains(BlueSkyConstants.AGENDA_CAPACITY_BYTES_KEY)
+                && data.contains(BlueSkyConstants.PEBBLE_NOW_UNIX_TIME_KEY))
         {
             try {
 
@@ -57,9 +57,9 @@ public class MainReceiver extends PebbleKit.PebbleDataReceiver
                 long agenda_need_seconds
                     = data.getInteger(BlueSkyConstants.AGENDA_NEED_SECONDS_KEY);
                 long agenda_capacity_bytes
-                    = data.getInteger(BlueSkyConstants.AGENDA_CAPACITY_BYTES);
+                    = data.getInteger(BlueSkyConstants.AGENDA_CAPACITY_BYTES_KEY);
                 long pebble_now_unix_time
-                    = data.getInteger(BlueSkyConstants.PEBBLE_NOW_UNIX_TIME);
+                    = data.getInteger(BlueSkyConstants.PEBBLE_NOW_UNIX_TIME_KEY);
 
                 // Convert to local data types and add fudge factor for end time
                 long extra_time_multiplier = 4;
