@@ -23,6 +23,7 @@ import com.getpebble.android.kit.PebbleKit;
 import com.getpebble.android.kit.util.PebbleDictionary;
 
 import ca.joshuatacoma.bluesky.BlueSkyConstants;
+import ca.joshuatacoma.bluesky.MainService;
 
 public class MainReceiver extends PebbleKit.PebbleDataReceiver
 {
@@ -67,8 +68,7 @@ public class MainReceiver extends PebbleKit.PebbleDataReceiver
                 // Create an intent that can cause MainService to send a
                 // response.
                 Intent sendAgendaIntent
-                    = new Intent()
-                    .setClassName("ca.joshuatacoma.bluesky", "MainService")
+                    = new Intent(context, MainService.class)
                     .setAction(BlueSkyConstants.ACTION_SEND_AGENDA)
                     .putExtra(
                             BlueSkyConstants.EXTRA_START_TIME,
