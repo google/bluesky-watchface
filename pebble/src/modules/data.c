@@ -178,14 +178,15 @@ static void bsky_data_in_dropped(AppMessageResult reason, void *context) {
 // Callback for the Pebble AppMessage API.
 //
 static void bsky_data_out_sent(DictionaryIterator *iterator, void *context) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "bsky_data_out_sent");
+    APP_LOG(APP_LOG_LEVEL_INFO,
+            "bsky_data_out_sent: message to phone was acknowledged");
     // TODO: remember that values flagged for sending have been sent
 }
 
 // Callback for the Pebble AppMessage API.
 //
 static void bsky_data_out_failed(DictionaryIterator *iterator, AppMessageResult reason, void *context) {
-    APP_LOG(APP_LOG_LEVEL_WARNING, "bsky_data_out_failed");
+    APP_LOG(APP_LOG_LEVEL_WARNING, "bsky_data_out_failed: %d", reason);
     // TODO: remember that values flagged for sending have not been sent
 }
 
@@ -375,7 +376,7 @@ bool bsky_data_send_outgoing() {
         return false;
     }
     APP_LOG(APP_LOG_LEVEL_INFO,
-            "bsky_data_send_outgoing: sent message");
+            "bsky_data_send_outgoing: sending message to phone...");
     return true;
 }
 

@@ -83,13 +83,13 @@ static void bsky_agenda_reload(struct BSKY_Agenda * agenda) {
     const void * bytes = bsky_data_ptr(BSKY_DATAKEY_AGENDA, &num_bytes);
     if (!bytes || num_bytes==0) {
         APP_LOG(APP_LOG_LEVEL_INFO,
-                "bsky_agenda_receive_data: no agenda data available yet");
+                "bsky_agenda_reload: no agenda data available yet");
         agenda->events_length = 0;
         return;
     }
 
-    APP_LOG(APP_LOG_LEVEL_INFO,
-            "bsky_agenda_receive_data: %u bytes",
+    APP_LOG(APP_LOG_LEVEL_DEBUG,
+            "bsky_agenda_reload: %u bytes",
             num_bytes);
     agenda->epoch = epoch;
     struct tm * epoch_wall_time = localtime(&agenda->epoch);
@@ -104,7 +104,7 @@ static void bsky_agenda_reload(struct BSKY_Agenda * agenda) {
     }
     bsky_agenda_update_events_by_height(agenda);
     APP_LOG(APP_LOG_LEVEL_INFO,
-            "bsky_agenda_receive_data: finished receiving agenda update");
+            "bsky_agenda_reload: finished loading agenda data");
 }
 
 // Update static state according to received data.
@@ -126,6 +126,8 @@ const struct BSKY_Agenda * bsky_agenda_read () {
     // Take this opportunity to trigger an update?
     time_t now = time(NULL);
     if (now >= s_next_attempt_update) {
+        APP_LOG(APP_LOG_LEVEL_DEBUG,
+                "bsky_agenda_read: looks like it's time to request an update");
         s_next_attempt_update = now + 30;
         bsky_data_set_outgoing_int(BSKY_DATAKEY_AGENDA_NEED_SECONDS, 24*60*60);
         bsky_data_set_outgoing_int(BSKY_DATAKEY_AGENDA_CAPACITY_BYTES, 1024);
