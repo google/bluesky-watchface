@@ -28,4 +28,9 @@ public class BlueSkyConstants
     static final int AGENDA_VERSION_KEY = 4;
     static final int PEBBLE_NOW_UNIX_TIME_KEY = 5;
     static final int AGENDA_EPOCH_KEY = 6;
+
+    static final String ACTION_SEND_AGENDA = "action://ca.joshuatacoma.bluesky/send_agenda";
+    static final String EXTRA_START_TIME = "ca.joshuatacoma.bluesky.extra.START_TIME";
+    static final String EXTRA_END_TIME = "ca.joshuatacoma.bluesky.extra.END_TIME";
+    static final String EXTRA_CAPACITY_BYTES = "ca.joshuatacoma.bluesky.extra.CAPACITY_BYTES";
 };

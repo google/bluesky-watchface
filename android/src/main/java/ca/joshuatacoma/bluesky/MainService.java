@@ -15,32 +15,38 @@
  */
 package ca.joshuatacoma.bluesky;
 
-import android.app.Service;
+import android.app.IntentService;
 import android.content.Intent;
 import android.os.IBinder;
 
+import java.util.Date;
+
 import ca.joshuatacoma.bluesky.CalendarBridge;
 
-public class MainService extends Service
+/** Translate intents into potentially blocking I/O operations.
+ */
+public class MainService extends IntentService
 {
-    @Override
-    public IBinder onBind(Intent intent) {
-        // This service does not support binding.
-        return null;
+    public MainService() {
+        super("MainService");
     }
 
     @Override
-    public void onCreate() {
+    protected void onHandleIntent(Intent intent) {
+        if (intent.getAction()==BlueSkyConstants.ACTION_SEND_AGENDA) {
+            Date start
+                = new Date(intent.getLongExtra(
+                            BlueSkyConstants.EXTRA_START_TIME,
+                            new Date().getTime()));
+            Date end
+                = new Date(intent.getLongExtra(
+                            BlueSkyConstants.EXTRA_END_TIME,
+                            start.getTime()+3*24*60*60*1000));
+            int capacityBytes
+                = intent.getIntExtra(
+                        BlueSkyConstants.EXTRA_CAPACITY_BYTES,
+                        64);
+            CalendarBridge.sendAgenda(this, start, end, capacityBytes);
+        }
     }
-
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        // TODO: subscribe to calendar content provider updates?
-        return 0;
-    }
-
-    @Override
-    public void onDestroy() {
-    }
-
 }
