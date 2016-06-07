@@ -172,7 +172,9 @@ static void bsky_data_in_received(DictionaryIterator *iterator, void *context) {
 // Callback for the Pebble AppMessage API.
 //
 static void bsky_data_in_dropped(AppMessageResult reason, void *context) {
-    APP_LOG(APP_LOG_LEVEL_WARNING, "bsky_data_in_dropped");
+    APP_LOG(APP_LOG_LEVEL_WARNING,
+            "bsky_data_in_dropped: %d",
+            reason);
 }
 
 // Callback for the Pebble AppMessage API.

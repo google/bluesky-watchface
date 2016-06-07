@@ -148,6 +148,7 @@ public class CalendarBridge
                 context,
                 BlueSkyConstants.APP_UUID,
                 message);
+        Log.d(TAG, "sent agenda to Pebble");
     }
 
     private static final String[] INSTANCE_PROJECTION = new String[] {
