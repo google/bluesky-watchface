@@ -18,6 +18,7 @@ package ca.joshuatacoma.bluesky;
 import android.app.IntentService;
 import android.content.Intent;
 import android.os.IBinder;
+import android.util.Log;
 
 import java.util.Date;
 
@@ -27,13 +28,17 @@ import ca.joshuatacoma.bluesky.CalendarBridge;
  */
 public class MainService extends IntentService
 {
+    static final String TAG = "BlueSky";
+
     public MainService() {
         super("MainService");
     }
 
     @Override
     protected void onHandleIntent(Intent intent) {
+        Log.d(TAG, "service received intent");
         if (intent.getAction()==BlueSkyConstants.ACTION_SEND_AGENDA) {
+            Log.i(TAG, "service received intent to send agenda");
             Date start
                 = new Date(intent.getLongExtra(
                             BlueSkyConstants.EXTRA_START_TIME,
