@@ -48,3 +48,32 @@ Install the Android companion app:
 
 [Android SDK]: https://developer.android.com/studio/releases/sdk-tools.html
 [Android Pebble App]: https://play.google.com/store/apps/details?id=com.getpebble.android.basalt
+
+## To Do
+
+The main task right now is to fix the flow of communication.  It's been driven
+by Pebble-side logic, but should be driven by the device with the larger
+battery.
+
+- [ ] Send periodic agenda updates from Android, no more than a few times per
+  hour, maybe much less.
+
+- [ ] Send agenda updates from Android in response to change notifications from
+  Android's Calendar Content Provider.
+
+- [ ] Send agenda capacity from Pebble only in response to inbox errors or
+  prolonged silence, and never more than a few times per day.
+
+See [doc/faults.md](doc/faults.md) for more details.
+
+Once the above is complete, it'll be time to fix up the user interface.
+
+- [ ] Give the companion application a reasonable interface.  At the very
+  least, a material themed status indicating whether the watch face is up to
+  date.
+
+- [ ] Make the present and future events that are displayed right next to each
+  other in the current version more visually distinct.
+
+Finally, a bit more work can be done to polish things up and publish this for
+anyone to use.
