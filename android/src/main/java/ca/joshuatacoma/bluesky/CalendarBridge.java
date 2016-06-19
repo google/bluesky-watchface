@@ -144,10 +144,11 @@ public class CalendarBridge
         message.addInt32(
                 BlueSkyConstants.AGENDA_EPOCH_KEY,
                 (int) (start_date.getTime()/1000));
-        PebbleKit.sendDataToPebble(
+        PebbleKit.sendDataToPebbleWithTransactionId(
                 context,
                 BlueSkyConstants.APP_UUID,
-                message);
+                message,
+                (int) (new Date().getTime() & 0x7F));
         Log.d(TAG, "sent agenda to Pebble");
     }
 
