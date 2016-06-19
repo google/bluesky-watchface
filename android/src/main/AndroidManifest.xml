@@ -27,11 +27,29 @@
             </intent-filter>
         </activity>
         <receiver
+            android:name=".PebbleAckReceiver"
+            >
+            <intent-filter>
+                <action
+                    android:name="com.getpebble.action.app.RECEIVE_ACK"
+                    />
+            </intent-filter>
+        </receiver>
+        <receiver
             android:name=".PebbleDataReceiver"
             >
             <intent-filter>
                 <action
                     android:name="com.getpebble.action.app.RECEIVE"
+                    />
+            </intent-filter>
+        </receiver>
+        <receiver
+            android:name=".PebbleNackReceiver"
+            >
+            <intent-filter>
+                <action
+                    android:name="com.getpebble.action.app.RECEIVE_NACK"
                     />
             </intent-filter>
         </receiver>
