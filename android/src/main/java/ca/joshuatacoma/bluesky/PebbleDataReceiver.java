@@ -25,11 +25,11 @@ import com.getpebble.android.kit.util.PebbleDictionary;
 import ca.joshuatacoma.bluesky.BlueSkyConstants;
 import ca.joshuatacoma.bluesky.MainService;
 
-public class MainReceiver extends PebbleKit.PebbleDataReceiver
+public class PebbleDataReceiver extends PebbleKit.PebbleDataReceiver
 {
     static final String TAG = "BlueSky";
 
-    public MainReceiver() {
+    public PebbleDataReceiver() {
         super(BlueSkyConstants.APP_UUID);
     }
 

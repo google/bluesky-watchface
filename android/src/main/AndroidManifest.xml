@@ -27,7 +27,7 @@
             </intent-filter>
         </activity>
         <receiver
-            android:name=".MainReceiver"
+            android:name=".PebbleDataReceiver"
             >
             <intent-filter>
                 <action
