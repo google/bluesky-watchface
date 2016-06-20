@@ -128,5 +128,14 @@ When errors are detected,
 2. Otherwise, if it looks like the Pebble is connected, the message should be
    retried with exponential back-off.
 
-3. Otherwise, the message should be queued for later, when it looks like the
+3. Otherwise, the update should be delayed till later, when it looks like the
    Pebble is connected.
+
+To do this, we need the following:
+
+* Was the attempted update a heartbeat update?
+
+* How many unsuccessful attempts have been made since the last successful
+  attempt?
+
+* Does the Pebble appear to be connected?
