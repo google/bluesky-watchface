@@ -22,6 +22,9 @@ android {
             proguardFile getDefaultProguardFile('proguard-android.txt')
         }
     }
+    lintOptions {
+        disable 'ExportedReceiver'
+    }
 }
 
 dependencies {
