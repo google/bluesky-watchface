@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.Date;
 
 import ca.joshuatacoma.bluesky.BlueSkyConstants;
+import ca.joshuatacoma.bluesky.PebbleState;
 
 public class CalendarBridge
 {
@@ -144,11 +145,13 @@ public class CalendarBridge
         message.addInt32(
                 BlueSkyConstants.AGENDA_EPOCH_KEY,
                 (int) (start_date.getTime()/1000));
+        int transactionId = (int) (new Date().getTime() & 0x7F);
+        PebbleState.recordAttempt(context, transactionId);
         PebbleKit.sendDataToPebbleWithTransactionId(
                 context,
                 BlueSkyConstants.APP_UUID,
                 message,
-                (int) (new Date().getTime() & 0x7F));
+                transactionId);
         Log.d(TAG, "sent agenda to Pebble");
     }
 

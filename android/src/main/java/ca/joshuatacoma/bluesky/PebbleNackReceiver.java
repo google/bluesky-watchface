@@ -36,5 +36,6 @@ public class PebbleNackReceiver extends PebbleKit.PebbleNackReceiver
             int transactionId)
     {
         Log.d(TAG, "receiveNack(" + String.valueOf(transactionId) + ")");
+        PebbleState.recordNack(context, transactionId);
     }
 };
