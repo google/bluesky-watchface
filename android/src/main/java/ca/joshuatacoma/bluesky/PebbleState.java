@@ -74,6 +74,7 @@ public class PebbleState
         editor.putInt("agenda.transaction", transactionId);
         editor.putLong("agenda.attempt_time", new Date().getTime());
         editor.apply();
+        Log.i(TAG, "beginning attempted send to Pebble");
     }
 
     /** Record an ACK received from the Pebble.
@@ -83,6 +84,7 @@ public class PebbleState
      */
     public static void recordAck(Context context, int transactionId) {
         SharedPreferences storage = getSharedPreferences(context);
+        Log.i(TAG, "received ACK from Pebble");
         if (storage.getInt("agenda.transaction", 0) == transactionId) {
             SharedPreferences.Editor editor = storage.edit();
             editor.putLong("agenda.ack_time", new Date().getTime());
@@ -100,6 +102,7 @@ public class PebbleState
      */
     public static void recordNack(Context context, int transactionId) {
         SharedPreferences storage = getSharedPreferences(context);
+        Log.i(TAG, "received NACK from Pebble");
         if (storage.getInt("agenda.transaction", 0) == transactionId) {
             SharedPreferences.Editor editor = storage.edit();
             editor.putLong("agenda.nack_time", new Date().getTime());
@@ -109,6 +112,8 @@ public class PebbleState
             int nackCount = storage.getInt("agenda.nack_count", 0);
             editor.putInt("agenda.nack_count", nackCount+1);
             editor.apply();
+            Log.w(TAG, "agenda.nack_count: "+String.valueOf(nackCount)
+                    + " agenda.ack_time: "+String.valueOf(getAckTime(context)));
         }
     }
 }
