@@ -132,7 +132,7 @@ const struct BSKY_Agenda * bsky_agenda_read () {
         bsky_data_set_outgoing_int(BSKY_DATAKEY_AGENDA_NEED_SECONDS, 24*60*60);
         bsky_data_set_outgoing_int(BSKY_DATAKEY_AGENDA_CAPACITY_BYTES, 1024);
         bsky_data_set_outgoing_int(BSKY_DATAKEY_PEBBLE_NOW_UNIX_TIME, now);
-        bsky_data_send_outgoing();
+        //bsky_data_send_outgoing();
     }
     return &s_agenda;
 }
