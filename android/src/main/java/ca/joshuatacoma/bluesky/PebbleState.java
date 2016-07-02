@@ -106,12 +106,15 @@ public class PebbleState
         if (storage.getInt("agenda.transaction", 0) == transactionId) {
             SharedPreferences.Editor editor = storage.edit();
             editor.putLong("agenda.nack_time", new Date().getTime());
+
             // The following line is not thread-safe because two threads
             // attempting the same update at about the same time can cause
             // one nack to be skipped:
             int nackCount = storage.getInt("agenda.nack_count", 0);
             editor.putInt("agenda.nack_count", nackCount+1);
+
             editor.apply();
+
             Log.w(TAG, "agenda.nack_count: "+String.valueOf(nackCount)
                     + " agenda.ack_time: "+String.valueOf(getAckTime(context)));
         }
