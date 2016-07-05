@@ -40,11 +40,26 @@ public class PebbleState
         return new Date(time);
     }
 
-    /** When the last attempt was made.
+    /** The size of the Pebble's buffer for incoming agenda updates.
+     */
+    public static int getAgendaCapacityBytes(Context context) {
+        return getSharedPreferences(context).getInt("agenda.capacity_bytes", 64);
+    }
+
+    /** When the last attempt to send an update to Pebble was made.
      */
     public static Date getAttemptTime(Context context) {
         long time = getSharedPreferences(context).getLong("agenda.attempt_time", 0);
         return new Date(time);
+    }
+
+    /** Estimate whether a transaction is in progress.
+     *
+     * It may be possible for this to be incorrect, but it's about as correct
+     * as possible given the available information.
+     */
+    public static boolean getIsTransactionInProgress(Context context) {
+        return getSharedPreferences(context).getInt("agenda.transaction", 0) != 0;
     }
 
     /** How many NACKs have been received since the last ACK.
@@ -61,6 +76,15 @@ public class PebbleState
     public static Date getNackTime(Context context) {
         long time = getSharedPreferences(context).getLong("agenda.nack_time", 0);
         return new Date(time);
+    }
+
+    /** Record the size of the Pebble's buffer for agenda updates.
+     */
+    public static void recordAgendaCapacityBytes(Context context, int capacityBytes) {
+        SharedPreferences.Editor editor = getSharedPreferences(context).edit();
+        editor.putInt("agenda.capacity_bytes", capacityBytes);
+        editor.apply();
+        Log.i(TAG, "recorded agenda capacity bytes="+String.valueOf(capacityBytes));
     }
 
     /** Record the outgoing Pebble message for the identified transaction.
@@ -85,12 +109,13 @@ public class PebbleState
     public static void recordAck(Context context, int transactionId) {
         SharedPreferences storage = getSharedPreferences(context);
         Log.i(TAG, "received ACK from Pebble");
+        SharedPreferences.Editor editor = storage.edit();
         if (storage.getInt("agenda.transaction", 0) == transactionId) {
-            SharedPreferences.Editor editor = storage.edit();
             editor.putLong("agenda.ack_time", new Date().getTime());
             editor.putInt("agenda.nack_count", 0);
-            editor.apply();
         }
+        editor.putInt("agenda.transaction", 0);
+        editor.apply();
     }
 
     /** Record a NACK received from the Pebble.
@@ -103,8 +128,8 @@ public class PebbleState
     public static void recordNack(Context context, int transactionId) {
         SharedPreferences storage = getSharedPreferences(context);
         Log.i(TAG, "received NACK from Pebble");
+        SharedPreferences.Editor editor = storage.edit();
         if (storage.getInt("agenda.transaction", 0) == transactionId) {
-            SharedPreferences.Editor editor = storage.edit();
             editor.putLong("agenda.nack_time", new Date().getTime());
 
             // The following line is not thread-safe because two threads
@@ -113,10 +138,10 @@ public class PebbleState
             int nackCount = storage.getInt("agenda.nack_count", 0);
             editor.putInt("agenda.nack_count", nackCount+1);
 
-            editor.apply();
-
-            Log.w(TAG, "agenda.nack_count: "+String.valueOf(nackCount)
-                    + " agenda.ack_time: "+String.valueOf(getAckTime(context)));
+            Log.w(TAG, "agenda.nack_count="+String.valueOf(nackCount)
+                    +", agenda.ack_time="+String.valueOf(getAckTime(context)));
         }
+        editor.putInt("agenda.transaction", 0);
+        editor.apply();
     }
 }

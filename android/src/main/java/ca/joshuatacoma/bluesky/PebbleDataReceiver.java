@@ -45,47 +45,9 @@ public class PebbleDataReceiver extends PebbleKit.PebbleDataReceiver
 
         Log.d(TAG, "ACK");
 
-        if (data.contains(BlueSkyConstants.AGENDA_NEED_SECONDS_KEY)
-                && data.contains(BlueSkyConstants.AGENDA_CAPACITY_BYTES_KEY)
-                && data.contains(BlueSkyConstants.PEBBLE_NOW_UNIX_TIME_KEY))
+        if (data.contains(BlueSkyConstants.AGENDA_CAPACITY_BYTES_KEY))
         {
-            try {
-                // Gather values from incoming data.
-                long agenda_need_seconds = data.getInteger(
-                        BlueSkyConstants.AGENDA_NEED_SECONDS_KEY);
-                long agenda_capacity_bytes = data.getInteger(
-                        BlueSkyConstants.AGENDA_CAPACITY_BYTES_KEY);
-                long pebble_now_unix_time = data.getInteger(
-                        BlueSkyConstants.PEBBLE_NOW_UNIX_TIME_KEY);
-
-                // Convert to local data types and add fudge factor for end
-                // time.
-                long extra_time_multiplier = 4;
-                long end_unix_time
-                    = pebble_now_unix_time
-                    + (agenda_need_seconds * extra_time_multiplier);
-
-                // Create an intent that can cause MainService to send a
-                // response.
-                Intent sendAgendaIntent
-                    = new Intent(context, MainService.class)
-                    .setAction(BlueSkyConstants.ACTION_SEND_AGENDA)
-                    .putExtra(
-                            BlueSkyConstants.EXTRA_START_TIME,
-                            (long)pebble_now_unix_time*1000L)
-                    .putExtra(
-                            BlueSkyConstants.EXTRA_END_TIME,
-                            (long)end_unix_time*1000L)
-                    .putExtra(
-                            BlueSkyConstants.EXTRA_CAPACITY_BYTES,
-                            (int)agenda_capacity_bytes);
-
-                if (context.startService(sendAgendaIntent)==null) {
-                    Log.e(TAG, "failed to send intent to service");
-                }
-            } catch(Exception e) {
-                Log.e(TAG, e.toString());
-            }
+            MainService.maybeSendAgendaUpdate(context);
         }
         Log.d(TAG, "done");
     }

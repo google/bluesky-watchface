@@ -127,7 +127,8 @@ const struct BSKY_Agenda * bsky_agenda_read () {
     time_t now = time(NULL);
     if (now >= s_next_attempt_update) {
         APP_LOG(APP_LOG_LEVEL_DEBUG,
-                "bsky_agenda_read: looks like it's time to request an update");
+                "bsky_agenda_read: update-hungry for at least %ld seconds",
+                now-s_next_attempt_update);
         s_next_attempt_update = now + 30;
         bsky_data_set_outgoing_int(BSKY_DATAKEY_AGENDA_NEED_SECONDS, 24*60*60);
         bsky_data_set_outgoing_int(BSKY_DATAKEY_AGENDA_CAPACITY_BYTES, 1024);

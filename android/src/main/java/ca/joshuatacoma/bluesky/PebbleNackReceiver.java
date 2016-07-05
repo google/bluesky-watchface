@@ -21,6 +21,7 @@ import android.util.Log;
 import com.getpebble.android.kit.PebbleKit;
 
 import ca.joshuatacoma.bluesky.BlueSkyConstants;
+import ca.joshuatacoma.bluesky.MainService;
 
 public class PebbleNackReceiver extends PebbleKit.PebbleNackReceiver
 {
@@ -37,5 +38,6 @@ public class PebbleNackReceiver extends PebbleKit.PebbleNackReceiver
     {
         Log.d(TAG, "receiveNack(" + String.valueOf(transactionId) + ")");
         PebbleState.recordNack(context, transactionId);
+        MainService.maybeSendAgendaUpdate(context);
     }
 };

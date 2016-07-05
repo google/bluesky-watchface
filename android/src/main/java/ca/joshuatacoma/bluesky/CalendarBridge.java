@@ -76,6 +76,9 @@ public class CalendarBridge
         agenda_capacity_bytes -= agenda_capacity_bytes % 4;
         byte[] agenda = new byte[agenda_capacity_bytes];
 
+        // TODO: handle the case that agenda_capacity_bytes is zero, or less
+        // than a sensible minimum.
+
         // "short time" is time, in minutes, from an epoch.  This is not the
         // Unix epoch, it is defined and kept in context with "short time"
         // values so that they can be converted to absolute time later.  In this
@@ -95,9 +98,6 @@ public class CalendarBridge
                     cursor.getLong(PROJECTION_BEGIN_INDEX),
                     cursor.getLong(PROJECTION_END_INDEX),
                 };
-                Log.d(TAG,
-                        "begin="+String.valueOf(as_unix_milliseconds[0])
-                        +",end="+String.valueOf(as_unix_milliseconds[1]));
                 short[] as_short_time = new short[2];
                 boolean overflowed = false;
                 for (int i=0; i<2; ++i) {
@@ -121,17 +121,14 @@ public class CalendarBridge
                     agenda[iagenda++] = (byte) (as_short_time[i] & 0x00ff);
                     agenda[iagenda++] = (byte) ((as_short_time[i] & 0xff00) >> 8);
                 }
-                Log.d(TAG,
-                        "begin_short="+String.valueOf(as_short_time[0])
-                        +",end_short="+String.valueOf(as_short_time[1]));
             }
         } finally {
             cursor.close();
         }
 
         Log.d(TAG,
-                "collected iagenda="+String.valueOf(iagenda)
-                +",n="+String.valueOf(iagenda/4));
+                "agenda update: byte count="+String.valueOf(iagenda)
+                +", event count="+String.valueOf(iagenda/4));
 
         int version = (int) (new Date().getTime() % 0xffffffffL);
 
@@ -146,6 +143,9 @@ public class CalendarBridge
                 BlueSkyConstants.AGENDA_EPOCH_KEY,
                 (int) (start_date.getTime()/1000));
         int transactionId = (int) (new Date().getTime() & 0x7F);
+        if (transactionId==0) {
+            transactionId = 1;
+        }
         PebbleState.recordAttempt(context, transactionId);
         PebbleKit.sendDataToPebbleWithTransactionId(
                 context,

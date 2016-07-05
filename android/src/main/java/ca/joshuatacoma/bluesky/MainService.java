@@ -16,6 +16,7 @@
 package ca.joshuatacoma.bluesky;
 
 import android.app.IntentService;
+import android.content.Context;
 import android.content.Intent;
 import android.os.IBinder;
 import android.util.Log;
@@ -34,19 +35,56 @@ public class MainService extends IntentService
         super("MainService");
     }
 
+    public static void maybeSendAgendaUpdate(Context context) {
+        if (PebbleState.getIsTransactionInProgress(context)) {
+            Log.d(TAG,
+                    "not attempting agenda update because another transaction"
+                    +" is in progress");
+            return;
+        }
+
+        Date lastAttempt = PebbleState.getAttemptTime(context);
+        int nackCount = PebbleState.getNackCount(context);
+
+        // If more than 5 NACKs since last ACKk and less than 10 seconds since
+        // last attempt, don't bother.
+        if (nackCount > 5 && lastAttempt.getTime() >= new Date().getTime()-10*1000) {
+            Log.d(TAG,
+                    "not attempting agenda update because:"
+                    +" nack count="+String.valueOf(nackCount)
+                    +", last attempt="+String.valueOf(lastAttempt));
+            return;
+        }
+
+        try {
+            // Create an intent that can cause MainService to send a
+            // response.
+            Intent sendAgendaIntent
+                = new Intent(context, MainService.class)
+                .setAction(BlueSkyConstants.ACTION_SEND_AGENDA)
+                .putExtra(
+                        BlueSkyConstants.EXTRA_CAPACITY_BYTES,
+                        PebbleState.getAgendaCapacityBytes(context));
+
+            if (context.startService(sendAgendaIntent)==null) {
+                // TODO: supposing this happens in real use, what could it mean?  A
+                // problem with permissions, maybe?  A reason to stop wasting
+                // battery trying to do something that can't be done?  See also
+                // the catch block below.
+                Log.e(TAG, "failed to send intent to service");
+            }
+        } catch(Exception e) {
+            Log.e(TAG, e.toString());
+        }
+    }
+
     @Override
     protected void onHandleIntent(Intent intent) {
         Log.d(TAG, "service received intent");
         if (intent.getAction()==BlueSkyConstants.ACTION_SEND_AGENDA) {
             Log.i(TAG, "service received intent to send agenda");
-            Date start
-                = new Date(intent.getLongExtra(
-                            BlueSkyConstants.EXTRA_START_TIME,
-                            new Date().getTime()));
-            Date end
-                = new Date(intent.getLongExtra(
-                            BlueSkyConstants.EXTRA_END_TIME,
-                            start.getTime()+3*24*60*60*1000));
+            Date start = new Date();
+            Date end = new Date(start.getTime()+7*24*60*60*1000);
             int capacityBytes
                 = intent.getIntExtra(
                         BlueSkyConstants.EXTRA_CAPACITY_BYTES,

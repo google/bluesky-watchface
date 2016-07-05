@@ -327,6 +327,7 @@ void bsky_data_set_outgoing_int(uint32_t key, int32_t data) {
 }
 
 bool bsky_data_send_outgoing() {
+    APP_LOG(APP_LOG_LEVEL_INFO, "bsky_data_send_outgoing()");
     if (!bsky_data_init()) {
         APP_LOG(APP_LOG_LEVEL_WARNING,
                 "bsky_data_send_outgoing:"
