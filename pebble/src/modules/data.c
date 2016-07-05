@@ -203,8 +203,8 @@ bool bsky_data_init(void) {
     app_message_register_outbox_failed(bsky_data_out_failed);
 
     AppMessageResult result = app_message_open(
-            bsky_data_buffer_size(s_key_outgoing),
-            bsky_data_buffer_size(s_key_incoming));
+            bsky_data_buffer_size(s_key_incoming),
+            bsky_data_buffer_size(s_key_outgoing));
     if (result != APP_MSG_OK) {
         APP_LOG(APP_LOG_LEVEL_ERROR, "app_message_open: %u", result);
         return false;
