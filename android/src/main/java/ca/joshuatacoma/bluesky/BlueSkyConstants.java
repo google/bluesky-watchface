@@ -25,7 +25,6 @@ public class BlueSkyConstants
     static final int AGENDA_NEED_SECONDS_KEY = 1;
     static final int AGENDA_CAPACITY_BYTES_KEY = 2;
     static final int AGENDA_KEY = 3;
-    static final int AGENDA_VERSION_KEY = 4;
     static final int PEBBLE_NOW_UNIX_TIME_KEY = 5;
     static final int AGENDA_EPOCH_KEY = 6;
 

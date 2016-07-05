@@ -137,9 +137,6 @@ public class CalendarBridge
                 BlueSkyConstants.AGENDA_KEY,
                 Arrays.copyOfRange(agenda, 0, iagenda));
         message.addInt32(
-                BlueSkyConstants.AGENDA_VERSION_KEY,
-                version);
-        message.addInt32(
                 BlueSkyConstants.AGENDA_EPOCH_KEY,
                 (int) (start_date.getTime()/1000));
         int transactionId = (int) (new Date().getTime() & 0x7F);
