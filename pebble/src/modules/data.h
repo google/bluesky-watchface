@@ -24,7 +24,14 @@ enum BSKY_DataKey {
     BSKY_DATAKEY_AGENDA_VERSION = 4,
     BSKY_DATAKEY_PEBBLE_NOW_UNIX_TIME = 5,
     BSKY_DATAKEY_AGENDA_EPOCH = 6,
-    BSKY_DATAKEY_MAX = 7, // largest key + 1
+    BSKY_DATAKEY_FACE_HOURS = 7,
+    BSKY_DATAKEY_FACE_ORIENTATION = 8,
+    BSKY_DATAKEY_MAX = 9, // largest key + 1
+};
+
+enum BSKY_Data_FaceOrientation {
+    BSKY_DATA_FACE_ORIENTATION_MIDNIGHT_TOP = 0,
+    BSKY_DATA_FACE_ORIENTATION_NOON_TOP = 1,
 };
 
 // Initialize the data module.

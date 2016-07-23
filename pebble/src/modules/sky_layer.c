@@ -98,18 +98,28 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
         ? sky_bounds.size.h
         : sky_bounds.size.w;
 
+    const int32_t circum_hours
+        = bsky_data_int(BSKY_DATAKEY_FACE_HOURS)
+        ? bsky_data_int(BSKY_DATAKEY_FACE_HOURS)
+        : clock_is_24h_style() ? HOURS_PER_DAY : HOURS_PER_DAY/2;
+
+    const enum BSKY_Data_FaceOrientation orientation = bsky_data_int(BSKY_DATAKEY_FACE_ORIENTATION);
+    const int32_t midnight_angle
+        = (orientation==BSKY_DATA_FACE_ORIENTATION_NOON_TOP && circum_hours==24)
+        ? (TRIG_MAX_ANGLE/2)
+        : 0;
+
     // Paint the sky blue
     graphics_context_set_fill_color(ctx, GColorVividCerulean);
     graphics_fill_rect(ctx, sky_bounds, 0, 0);
 
-    // Update the 24 hour markers
-    const int32_t midnight_angle = TRIG_MAX_ANGLE / 2;
+    // Update the hour markers
     const GRect sky_inset = bsky_rect_trim(sky_bounds, sky_diameter / 4);
     graphics_context_set_stroke_color(ctx, color_sky_stroke);
     graphics_context_set_antialiased(ctx, true);
-    for (int32_t hour = 0; hour < 24; ++hour) {
+    for (int32_t hour = 0; hour < circum_hours; ++hour) {
         const int32_t hour_angle =
-            (midnight_angle + hour * TRIG_MAX_ANGLE / 24)
+            (midnight_angle + hour * TRIG_MAX_ANGLE / circum_hours)
             % TRIG_MAX_ANGLE;
         const GPoint p0 = gpoint_from_polar(
                 sky_inset,
@@ -133,8 +143,8 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
 
     // Update the Sun
     const int32_t sun_angle = midnight_angle
-        + TRIG_MAX_ANGLE * data->wall_time.tm_hour / 24
-        + TRIG_MAX_ANGLE * data->wall_time.tm_min / (24 * 60);
+        + TRIG_MAX_ANGLE * data->wall_time.tm_hour / circum_hours
+        + TRIG_MAX_ANGLE * data->wall_time.tm_min / (circum_hours * 60);
     const int32_t sun_diameter = sky_diameter / 7;
     const GRect sun_orbit
         = bsky_rect_trim(
@@ -166,7 +176,7 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
     const uint16_t duration_max = 90*60;
     const struct BSKY_Agenda * agenda = bsky_agenda_read();
     const struct BSKY_AgendaEvent * events = agenda->events;
-    time_t max_start_time = data->unix_time+24*60*60;
+    time_t max_start_time = data->unix_time+circum_hours*60*60;
     time_t min_end_time = data->unix_time;
     for (int32_t index=0; index<agenda->events_length; ++index) {
         int32_t ievent
@@ -202,8 +212,8 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
             wall_times[t] = *localtime(&cropped);
             angles[t]
                 = midnight_angle
-                + TRIG_MAX_ANGLE * wall_times[t].tm_hour / 24
-                + TRIG_MAX_ANGLE * wall_times[t].tm_min / (24 * 60);
+                + TRIG_MAX_ANGLE * wall_times[t].tm_hour / circum_hours
+                + TRIG_MAX_ANGLE * wall_times[t].tm_min / (circum_hours * 60);
         }
         APP_LOG(APP_LOG_LEVEL_DEBUG, "event start=%s", bsky_debug_fmt_time(times[0]));
         APP_LOG(APP_LOG_LEVEL_DEBUG, "event end=%s", bsky_debug_fmt_time(times[1]));

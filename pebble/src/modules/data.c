@@ -24,6 +24,8 @@ static const char * s_key_name [BSKY_DATAKEY_MAX] = {
     [BSKY_DATAKEY_AGENDA_CAPACITY_BYTES] = "BSKY_DATAKEY_AGENDA_CAPACITY_BYTES",
     [BSKY_DATAKEY_AGENDA] = "BSKY_DATAKEY_AGENDA",
     [BSKY_DATAKEY_PEBBLE_NOW_UNIX_TIME] = "BSKY_DATAKEY_PEBBLE_NOW_UNIX_TIME",
+    [BSKY_DATAKEY_FACE_HOURS] = "BSKY_DATAKEY_FACE_HOURS",
+    [BSKY_DATAKEY_FACE_ORIENTATION] = "BSKY_DATAKEY_FACE_ORIENTATION",
 };
 
 static const TupleType s_key_type [BSKY_DATAKEY_MAX] = {
@@ -33,6 +35,8 @@ static const TupleType s_key_type [BSKY_DATAKEY_MAX] = {
     [BSKY_DATAKEY_PEBBLE_NOW_UNIX_TIME] = TUPLE_INT,
     [BSKY_DATAKEY_AGENDA_VERSION] = TUPLE_INT,
     [BSKY_DATAKEY_AGENDA_EPOCH] = TUPLE_INT,
+    [BSKY_DATAKEY_FACE_HOURS] = TUPLE_INT,
+    [BSKY_DATAKEY_FACE_ORIENTATION] = TUPLE_INT,
 };
 
 static const size_t s_key_size [BSKY_DATAKEY_MAX] = {
@@ -42,18 +46,24 @@ static const size_t s_key_size [BSKY_DATAKEY_MAX] = {
     [BSKY_DATAKEY_PEBBLE_NOW_UNIX_TIME] = sizeof(int32_t),
     [BSKY_DATAKEY_AGENDA_VERSION] = sizeof(int32_t),
     [BSKY_DATAKEY_AGENDA_EPOCH] = sizeof(int32_t),
+    [BSKY_DATAKEY_FACE_HOURS] = sizeof(int32_t),
+    [BSKY_DATAKEY_FACE_ORIENTATION] = sizeof(int32_t),
 };
 
 static const bool s_key_incoming [BSKY_DATAKEY_MAX] = {
     [BSKY_DATAKEY_AGENDA] = true,
     [BSKY_DATAKEY_AGENDA_VERSION] = true,
     [BSKY_DATAKEY_AGENDA_EPOCH] = true,
+    [BSKY_DATAKEY_FACE_HOURS] = true,
+    [BSKY_DATAKEY_FACE_ORIENTATION] = true,
 };
 
 static const bool s_key_outgoing [BSKY_DATAKEY_MAX] = {
     [BSKY_DATAKEY_AGENDA_NEED_SECONDS] = true,
     [BSKY_DATAKEY_AGENDA_CAPACITY_BYTES] = true,
     [BSKY_DATAKEY_PEBBLE_NOW_UNIX_TIME] = true,
+    [BSKY_DATAKEY_FACE_HOURS] = true,
+    [BSKY_DATAKEY_FACE_ORIENTATION] = true,
 };
 
 static uint8_t s_agenda_buffer [1024] = {0};
@@ -70,6 +80,8 @@ static union BSKY_Value s_key_buffer [BSKY_DATAKEY_MAX] = {
     [BSKY_DATAKEY_AGENDA_NEED_SECONDS] = {.int32=24*60*60},
     [BSKY_DATAKEY_AGENDA_CAPACITY_BYTES] = {.int32=sizeof(s_agenda_buffer)},
     [BSKY_DATAKEY_AGENDA] = {.ptr=s_agenda_buffer},
+    [BSKY_DATAKEY_FACE_HOURS] = {.int32=0},
+    [BSKY_DATAKEY_FACE_ORIENTATION] = {.int32=0},
 };
 
 static bool s_key_buffer_initialized [BSKY_DATAKEY_MAX] = {0};

@@ -42,17 +42,20 @@ static void update_time() {
 
     bsky_sky_layer_set_time(s_sky_layer, now);
 
-    // 6 characaters is enough in my locale, but 7 are necessary to hold
+    // 6 characters is enough in my locale, but 7 are necessary to hold
     // the generic_error message that will be displayed in case the
     // buffer isn't large enough after all.
     static char s_time_buffer[7];
     if (0 == strftime(s_time_buffer,
                 sizeof(s_time_buffer),
-                clock_is_24h_style() ? "%H:%M" : "%I:%M",
+                clock_is_24h_style() ? "%H:%M" : "%l:%M",
                 local_now)) {
         sprint_error(s_time_buffer, sizeof(s_time_buffer));
     }
-    text_layer_set_text(s_time_layer, s_time_buffer);
+    // Trim leading space character (output by "%l")
+    char * time_str = s_time_buffer;
+    if (*time_str==' ') { time_str++; }
+    text_layer_set_text(s_time_layer, time_str);
 
     static char s_date_buffer[7];
     if (0 == strftime(s_date_buffer,
@@ -72,7 +75,7 @@ static void tick_handler(
     // local time in update_time, but we may very well want to call
     // update_time in other contexts where we don't have an appropriate
     // value to pass in.  Therefore, update_time will ultimately have to
-    // be reponsible for computing the local time anyway.
+    // be responsible for computing the local time anyway.
     update_time();
 }
 
