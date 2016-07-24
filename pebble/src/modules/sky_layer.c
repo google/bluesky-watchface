@@ -93,7 +93,7 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
     const GRect bounds = layer_get_bounds(layer);
 
     const GRect sky_bounds = bounds;
-    const int16_t sky_diameter = 
+    const int16_t sky_diameter_px =
         (sky_bounds.size.w > sky_bounds.size.h)
         ? sky_bounds.size.h
         : sky_bounds.size.w;
@@ -104,9 +104,11 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
         : clock_is_24h_style() ? HOURS_PER_DAY : HOURS_PER_DAY/2;
     const int32_t circum_seconds = circum_hours * SECONDS_PER_HOUR;
 
-    const enum BSKY_Data_FaceOrientation orientation = bsky_data_int(BSKY_DATAKEY_FACE_ORIENTATION);
+    const enum BSKY_Data_FaceOrientation orientation
+        = bsky_data_int(BSKY_DATAKEY_FACE_ORIENTATION);
     const int32_t midnight_angle
-        = (orientation==BSKY_DATA_FACE_ORIENTATION_NOON_TOP && circum_hours==24)
+        = (orientation==BSKY_DATA_FACE_ORIENTATION_NOON_TOP
+           && circum_hours==24)
         ? (TRIG_MAX_ANGLE/2)
         : 0;
 
@@ -115,7 +117,8 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
     graphics_fill_rect(ctx, sky_bounds, 0, 0);
 
     // Update the hour markers
-    const GRect sky_inset = bsky_rect_trim(sky_bounds, sky_diameter / 4);
+    const GRect sky_inset_bounds
+        = bsky_rect_trim(sky_bounds, sky_diameter_px / 4);
     graphics_context_set_stroke_color(ctx, color_sky_stroke);
     graphics_context_set_antialiased(ctx, true);
     for (int32_t hour = 0; hour < circum_hours; ++hour) {
@@ -123,7 +126,7 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
             (midnight_angle + hour * TRIG_MAX_ANGLE / circum_hours)
             % TRIG_MAX_ANGLE;
         const GPoint p0 = gpoint_from_polar(
-                sky_inset,
+                sky_inset_bounds,
                 GOvalScaleModeFitCircle,
                 hour_angle);
         const GPoint p1 = gpoint_from_polar(
@@ -140,19 +143,22 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
         .y=bounds.origin.y+bounds.size.h/2,
     };
     graphics_context_set_fill_color(ctx, GColorWhite);
-    graphics_fill_circle(ctx, center, sky_diameter/2-(sky_diameter*3/13));
+    graphics_fill_circle(
+            ctx,
+            center,
+            sky_diameter_px/2-(sky_diameter_px*3/13));
 
     // Update the Sun
     const int32_t sun_angle = midnight_angle
         + TRIG_MAX_ANGLE * data->wall_time.tm_hour / circum_hours
         + TRIG_MAX_ANGLE * data->wall_time.tm_min / (circum_hours * 60);
-    const int32_t sun_diameter = sky_diameter / 7;
-    const GRect sun_orbit
+    const int32_t sun_diameter_px = sky_diameter_px / 7;
+    const GRect sun_orbit_bounds
         = bsky_rect_trim(
                 sky_bounds,
-                (sky_diameter*3/13) - sun_diameter/2);
+                (sky_diameter_px*3/13) - sun_diameter_px/2);
     const GPoint sun_center = gpoint_from_polar(
-            sun_orbit,
+            sun_orbit_bounds,
             GOvalScaleModeFitCircle,
             sun_angle);
     const GPoint sun_beam = gpoint_from_polar(
@@ -163,25 +169,25 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
     graphics_context_set_stroke_width(ctx, 2);
     graphics_context_set_fill_color(ctx, color_sun_fill);
     graphics_draw_line(ctx, sun_center, sun_beam);
-    graphics_fill_circle(ctx, sun_center, sun_diameter/2);
-    graphics_draw_circle(ctx, sun_center, sun_diameter/2);
+    graphics_fill_circle(ctx, sun_center, sun_diameter_px/2);
+    graphics_draw_circle(ctx, sun_center, sun_diameter_px/2);
     graphics_context_set_stroke_width(ctx, 1);
     graphics_context_set_stroke_color(ctx, color_sun_fill);
     graphics_draw_line(ctx, sun_center, sun_beam);
 
     // Draw the Skyline as solid blocks
     const GRect skyline_bounds = sky_bounds;
-    const uint16_t inset_min = sky_diameter/20;
-    const uint16_t inset_max = sky_diameter/2-(sky_diameter*4/14);
-    const uint16_t duration_min = 20*SECONDS_PER_MINUTE;
-    const uint16_t duration_max = 6*SECONDS_PER_HOUR;
+    const uint16_t inset_min_px = sky_diameter_px/20;
+    const uint16_t inset_max_px = sky_diameter_px/2-(sky_diameter_px*4/14);
+    const uint16_t duration_min_seconds = 20*SECONDS_PER_MINUTE;
+    const uint16_t duration_max_seconds = 6*SECONDS_PER_HOUR;
     const struct BSKY_Agenda * agenda = bsky_agenda_read();
     const struct BSKY_AgendaEvent * events = agenda->events;
-    time_t max_start_time = data->unix_time+circum_hours*60*60;
+    time_t max_start_time = data->unix_time+circum_hours*SECONDS_PER_HOUR;
     time_t min_end_time = data->unix_time;
     const time_t midnight_time = time_start_of_today();
     for (int32_t index=0; index<agenda->events_length; ++index) {
-        int32_t ievent
+        const int32_t ievent
             = agenda->events_by_height
             ? agenda->events_by_height[index]
             : index;
@@ -204,21 +210,27 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
 
         int32_t angles [2];
         for (int t=0; t<2; ++t) {
-            time_t cropped
+            const time_t cropped
                 = times[t] < min_end_time ? min_end_time
                 : times[t] > max_start_time ? max_start_time
                 : times[t];
-            int32_t seconds_since_midnight = cropped-midnight_time;
-            int32_t minutes_since_midnight = (seconds_since_midnight/SECONDS_PER_MINUTE) % MINUTES_PER_HOUR;
-            int32_t hours_since_midnight = seconds_since_midnight/SECONDS_PER_HOUR;
+            const int32_t seconds_since_midnight = cropped-midnight_time;
+            const int32_t minutes_since_midnight
+                = (seconds_since_midnight/SECONDS_PER_MINUTE)
+                % MINUTES_PER_HOUR;
+            const int32_t hours_since_midnight
+                = seconds_since_midnight/SECONDS_PER_HOUR;
             angles[t]
                 = midnight_angle
                 + TRIG_MAX_ANGLE * hours_since_midnight / circum_hours
-                + TRIG_MAX_ANGLE * minutes_since_midnight / (circum_hours * 60);
+                + (TRIG_MAX_ANGLE * minutes_since_midnight
+                   / (circum_hours * 60));
         }
 
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "event start=%s", bsky_debug_fmt_time(times[0]));
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "event end=%s", bsky_debug_fmt_time(times[1]));
+        APP_LOG(APP_LOG_LEVEL_DEBUG,
+                "event start=%s", bsky_debug_fmt_time(times[0]));
+        APP_LOG(APP_LOG_LEVEL_DEBUG,
+                "event end=%s", bsky_debug_fmt_time(times[1]));
 
         // The Sun's light reflects off the near side of buildings.  As a
         // building approaches, its nearest side brightens and eventually
@@ -232,32 +244,36 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
         if (angle_till_start<0) {
             shine_angle = 0;
         } else {
-            shine_angle = (angles[1]-angles[0])*angle_till_start/(TRIG_MAX_ANGLE/2);
+            shine_angle
+                = (angles[1]-angles[0])
+                * angle_till_start
+                / (TRIG_MAX_ANGLE/2);
         }
 
-        uint16_t duration_scale
-            = (times[1]-times[0]) < duration_min
+        const uint32_t duration_seconds = times[1]-times[0];
+        const uint16_t duration_scale
+            = duration_seconds < duration_min_seconds
             ? 0
-            : (times[1]-times[0]) > duration_max
-            ? (duration_max-duration_min)
-            : (times[1]-times[0]) - duration_min;
-        uint16_t event_height_px
+            : duration_seconds < duration_max_seconds
+            ? duration_seconds - duration_min_seconds
+            : (duration_max_seconds-duration_min_seconds);
+        const uint16_t event_height_px
             = duration_scale
-            * (inset_max-inset_min)
-            / (duration_max-duration_min);
+            * (inset_max_px-inset_min_px)
+            / (duration_max_seconds-duration_min_seconds);
         graphics_context_set_fill_color(ctx, GColorBlack);
         graphics_fill_radial(
                 ctx,
                 skyline_bounds,
                 GOvalScaleModeFitCircle,
-                inset_max - event_height_px,
+                inset_max_px - event_height_px,
                 angles[0],
                 angles[1]);
 
         const int32_t outline_angle = TRIG_MAX_ANGLE*4/(360*3);
         if (shine_angle>0) {
             GColor shine_color;
-            if (event_height_px > (inset_max+inset_min)*2/5) {
+            if (event_height_px > (inset_max_px+inset_min_px)*2/5) {
                 // Tall towers tend to be made of more grey/blue material so
                 // highlight them that way.
                 shine_color = GColorLiberty;
@@ -276,7 +292,7 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
                     ctx,
                     skyline_bounds,
                     GOvalScaleModeFitCircle,
-                    inset_max - event_height_px - 1,
+                    inset_max_px - event_height_px - 1,
                     shine_start_angle,
                     shine_end_angle);
         }
