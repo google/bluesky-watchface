@@ -102,6 +102,7 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
         = bsky_data_int(BSKY_DATAKEY_FACE_HOURS)
         ? bsky_data_int(BSKY_DATAKEY_FACE_HOURS)
         : clock_is_24h_style() ? HOURS_PER_DAY : HOURS_PER_DAY/2;
+    const int32_t circum_seconds = circum_hours * SECONDS_PER_HOUR;
 
     const enum BSKY_Data_FaceOrientation orientation = bsky_data_int(BSKY_DATAKEY_FACE_ORIENTATION);
     const int32_t midnight_angle
@@ -170,14 +171,15 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
 
     // Draw the Skyline as solid blocks
     const GRect skyline_bounds = sky_bounds;
-    const uint16_t inset_min = sky_diameter/10;
+    const uint16_t inset_min = sky_diameter/20;
     const uint16_t inset_max = sky_diameter/2-(sky_diameter*4/14);
-    const uint16_t duration_min = 20*60;
-    const uint16_t duration_max = 90*60;
+    const uint16_t duration_min = 20*SECONDS_PER_MINUTE;
+    const uint16_t duration_max = 6*SECONDS_PER_HOUR;
     const struct BSKY_Agenda * agenda = bsky_agenda_read();
     const struct BSKY_AgendaEvent * events = agenda->events;
     time_t max_start_time = data->unix_time+circum_hours*60*60;
     time_t min_end_time = data->unix_time;
+    const time_t midnight_time = time_start_of_today();
     for (int32_t index=0; index<agenda->events_length; ++index) {
         int32_t ievent
             = agenda->events_by_height
@@ -192,73 +194,91 @@ static void bsky_sky_layer_update (Layer *layer, GContext *ctx) {
             agenda->epoch + events[ievent].rel_end*60,
         };
         if (times[0] > max_start_time) {
+            // This event starts too far in the future to be displayed now.
             continue;
         }
         if (times[1] <= min_end_time) {
+            // This event is already over.
             continue;
         }
-        graphics_context_set_fill_color(ctx, GColorBlack);
-        struct tm wall_times [2];
+
         int32_t angles [2];
-        bool cropped_highlight = false;
         for (int t=0; t<2; ++t) {
             time_t cropped
                 = times[t] < min_end_time ? min_end_time
                 : times[t] > max_start_time ? max_start_time
                 : times[t];
-            if (t==0 && cropped!=times[t]) {
-                cropped_highlight = true;
-            }
-            wall_times[t] = *localtime(&cropped);
+            int32_t seconds_since_midnight = cropped-midnight_time;
+            int32_t minutes_since_midnight = (seconds_since_midnight/SECONDS_PER_MINUTE) % MINUTES_PER_HOUR;
+            int32_t hours_since_midnight = seconds_since_midnight/SECONDS_PER_HOUR;
             angles[t]
                 = midnight_angle
-                + TRIG_MAX_ANGLE * wall_times[t].tm_hour / circum_hours
-                + TRIG_MAX_ANGLE * wall_times[t].tm_min / (circum_hours * 60);
+                + TRIG_MAX_ANGLE * hours_since_midnight / circum_hours
+                + TRIG_MAX_ANGLE * minutes_since_midnight / (circum_hours * 60);
         }
+
         APP_LOG(APP_LOG_LEVEL_DEBUG, "event start=%s", bsky_debug_fmt_time(times[0]));
         APP_LOG(APP_LOG_LEVEL_DEBUG, "event end=%s", bsky_debug_fmt_time(times[1]));
+
+        // The Sun's light reflects off the near side of buildings.  As a
+        // building approaches, its nearest side brightens and eventually
+        // becomes parallel to the Sun, occluded by the rest of the building.
+        // Here, the proportion of the building that shines begins at 100% at
+        // 180 degrees from the Sun, then diminishes linearly.  Without floats,
+        // we will represent this portion as a span of the building's angle.
+        const int32_t angle_till_start
+            = angles[0]-sun_angle;
+        int32_t shine_angle;
+        if (angle_till_start<0) {
+            shine_angle = 0;
+        } else {
+            shine_angle = (angles[1]-angles[0])*angle_till_start/(TRIG_MAX_ANGLE/2);
+        }
+
         uint16_t duration_scale
             = (times[1]-times[0]) < duration_min
             ? 0
             : (times[1]-times[0]) > duration_max
             ? (duration_max-duration_min)
             : (times[1]-times[0]) - duration_min;
-        uint16_t inset_offset
+        uint16_t event_height_px
             = duration_scale
             * (inset_max-inset_min)
             / (duration_max-duration_min);
+        graphics_context_set_fill_color(ctx, GColorBlack);
         graphics_fill_radial(
                 ctx,
                 skyline_bounds,
                 GOvalScaleModeFitCircle,
-                inset_max - inset_offset,
+                inset_max - event_height_px,
                 angles[0],
                 angles[1]);
-        GColor highlight;
-        if (angles[1]-angles[0] < TRIG_MAX_ANGLE/360) {
-            // Towers too thin to show contrast against the blue sky
-            // should keep a dark color even when highlighted.
-            highlight = GColorDarkGray;
-        } else if (inset_offset > (inset_max+inset_min)*2/5) {
-            // Tall towers tend to be made of more grey/blue material so
-            // highlight them that way.
-            highlight = GColorLiberty;
-        } else {
-            // Otherwise let's say it's made of traditional red-orange
-            // brick, and the highlight can be wider.
-            highlight = GColorRoseVale;
-        }
-        if (!cropped_highlight) {
-            int32_t highlight_start_angle = TRIG_MAX_ANGLE*4/(360*3);
-            int32_t highlight_end_angle = (angles[1]-angles[0])*1/3;
-            graphics_context_set_fill_color(ctx, highlight);
+
+        const int32_t outline_angle = TRIG_MAX_ANGLE*4/(360*3);
+        if (shine_angle>0) {
+            GColor shine_color;
+            if (event_height_px > (inset_max+inset_min)*2/5) {
+                // Tall towers tend to be made of more grey/blue material so
+                // highlight them that way.
+                shine_color = GColorLiberty;
+            } else {
+                // Otherwise let's say it's made of traditional red-orange
+                // brick, and the highlight can be wider.
+                shine_color = GColorRoseVale;
+            }
+            const int32_t shine_start_angle = angles[0]+outline_angle;
+            int32_t shine_end_angle = shine_start_angle+shine_angle;
+            if (shine_end_angle > (angles[1]-outline_angle)) {
+                shine_end_angle = angles[1]-outline_angle;
+            }
+            graphics_context_set_fill_color(ctx, shine_color);
             graphics_fill_radial(
                     ctx,
                     skyline_bounds,
                     GOvalScaleModeFitCircle,
-                    inset_max - inset_offset - 1,
-                    angles[0]+highlight_start_angle,
-                    angles[0]+highlight_end_angle);
+                    inset_max - event_height_px - 1,
+                    shine_start_angle,
+                    shine_end_angle);
         }
     }
 }
